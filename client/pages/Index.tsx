@@ -240,10 +240,10 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Best Selling Equipment
+              {t('bestSellers.title')}
             </h2>
             <p className="text-xl text-gray-600">
-              Top-rated products trusted by pool professionals nationwide
+              {t('bestSellers.subtitle')}
             </p>
           </div>
 
@@ -252,12 +252,12 @@ export default function Index() {
               <Link key={product.id} to={`/product/${product.id}`}>
                 <Card className="group hover:shadow-lg transition-all duration-300 border-0 overflow-hidden">
                   <div className="relative">
-                    <img 
-                      src={product.image} 
+                    <img
+                      src={product.image}
                       alt={product.name}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    <div className={`absolute top-3 ${dir === 'rtl' ? 'right-3' : 'left-3'} bg-green-500 text-white px-2 py-1 rounded text-xs font-medium`}>
                       {product.badge}
                     </div>
                   </div>
@@ -265,22 +265,22 @@ export default function Index() {
                     <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
                       {product.name}
                     </h3>
-                    <div className="flex items-center mb-2">
+                    <div className={`flex items-center mb-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-gray-600 ml-2">({product.reviews})</span>
+                      <span className={`text-sm text-gray-600 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>({product.reviews})</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-xl font-bold text-gray-900">${product.price}</span>
                         {product.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through ml-2">${product.originalPrice}</span>
+                          <span className={`text-sm text-gray-500 line-through ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>${product.originalPrice}</span>
                         )}
                       </div>
                       <CheckCircle className="w-5 h-5 text-green-500" />
@@ -293,8 +293,8 @@ export default function Index() {
 
           <div className="text-center mt-10">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-              View All Best Sellers
-              <ArrowRight className="ml-2 w-5 h-5" />
+              {t('bestSellers.viewAll')}
+              <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
             </Button>
           </div>
         </div>
@@ -304,18 +304,17 @@ export default function Index() {
       <section className="py-20 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            Need Help Choosing the Right Equipment?
+            {t('cta.title')}
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Our certified pool professionals are here to help you find the perfect solution for your pool. 
-            Get a free consultation and personalized recommendations.
+            {t('cta.description')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
-              Schedule Free Consultation
+              {t('cta.consultation')}
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
-              Call 1-800-POOL-PRO
+              {t('cta.call')}
             </Button>
           </div>
         </div>
