@@ -14,6 +14,7 @@ import CartDrawer from "./components/CartDrawer";
 import PlaceholderPage from "./components/PlaceholderPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import ProductDetail from "./pages/ProductDetail";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/Products";
 
