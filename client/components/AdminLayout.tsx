@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  BarChart3, 
-  Settings, 
-  Menu, 
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Package,
+  ShoppingCart,
+  Users,
+  BarChart3,
+  Settings,
+  Menu,
   X,
   LogOut,
   Home
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
