@@ -32,12 +32,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3 },
-    { name: 'Products', href: '/admin/products', icon: Package },
-    { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-    { name: 'Categories', href: '/admin/categories', icon: Package },
-    { name: 'Customers', href: '/admin/customers', icon: Users },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    {
+      name_en: 'Dashboard',
+      name_fa: 'داشبورد',
+      href: '/admin',
+      icon: BarChart3
+    },
+    {
+      name_en: 'Products',
+      name_fa: 'محصولات',
+      href: '/admin/products',
+      icon: Package
+    },
+    {
+      name_en: 'Orders',
+      name_fa: 'سفارشات',
+      href: '/admin/orders',
+      icon: ShoppingCart
+    },
+    {
+      name_en: 'Categories',
+      name_fa: 'دسته‌بندی‌ها',
+      href: '/admin/categories',
+      icon: Package
+    },
+    {
+      name_en: 'Customers',
+      name_fa: 'مشتریان',
+      href: '/admin/customers',
+      icon: Users
+    },
+    {
+      name_en: 'Menu Management',
+      name_fa: 'مدیریت منو',
+      href: '/admin/menus',
+      icon: Settings
+    },
+    {
+      name_en: 'Settings',
+      name_fa: 'تنظیمات',
+      href: '/admin/settings',
+      icon: Settings
+    },
   ];
 
   const isCurrentPath = (path: string) => {
@@ -66,7 +102,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <div className="w-4 h-4 bg-white rounded-full opacity-90"></div>
             </div>
             <span className={`${dir === 'rtl' ? 'mr-3' : 'ml-3'} text-xl font-bold text-gray-900`}>
-              Admin Panel
+              {language === 'fa' ? 'پنل مدیریت' : 'Admin Panel'}
             </span>
           </Link>
           
@@ -93,7 +129,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 }`}
               >
                 <item.icon className={`flex-shrink-0 w-5 h-5 ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`} />
-                {item.name}
+                {language === 'fa' ? item.name_fa : item.name_en}
               </Link>
             ))}
           </div>
@@ -104,7 +140,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               className="group flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900"
             >
               <Home className={`flex-shrink-0 w-5 h-5 ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`} />
-              Back to Website
+              {language === 'fa' ? 'بازگشت به سایت' : 'Back to Website'}
             </Link>
             
             <button
@@ -135,7 +171,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Button>
                 
                 <h1 className={`${dir === 'rtl' ? 'mr-4' : 'ml-4'} text-2xl font-semibold text-gray-900`}>
-                  Admin Dashboard
+                  {language === 'fa' ? '��نل مدیریت' : 'Admin Dashboard'}
                 </h1>
               </div>
 
