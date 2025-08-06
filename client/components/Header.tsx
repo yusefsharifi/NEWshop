@@ -130,19 +130,40 @@ export default function Header() {
               <span>{t('header.login')}</span>
             </Button>
 
-            <Link to="/cart" className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsOpen(true)}
+              className="relative"
+            >
               <Button
                 variant="ghost"
                 size="sm"
                 className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'} text-gray-700 hover:text-blue-600`}
               >
-                <ShoppingCart className="w-5 h-5" />
+                <motion.div
+                  animate={itemCount > 0 ? { rotate: [0, -10, 10, 0] } : {}}
+                  transition={{ duration: 0.5 }}
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                </motion.div>
                 <span className="hidden sm:inline">{t('header.cart')}</span>
-                <span className={`absolute -top-2 ${dir === 'rtl' ? '-left-2' : '-right-2'} bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center`}>
-                  0
-                </span>
+                <AnimatePresence>
+                  {itemCount > 0 && (
+                    <motion.span
+                      key="cart-badge"
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className={`absolute -top-2 ${dir === 'rtl' ? '-left-2' : '-right-2'} bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg`}
+                    >
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Button>
-            </Link>
+            </motion.button>
 
             {/* Mobile menu button */}
             <Button
