@@ -12,6 +12,8 @@ import Footer from "./components/Footer";
 import PlaceholderPage from "./components/PlaceholderPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminProducts from "./pages/admin/Products";
 
 const queryClient = new QueryClient();
 
