@@ -23,14 +23,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSearch } from '@/hooks/useSearch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t, dir, language } = useLanguage();
   const { addItem } = useCart();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
@@ -346,7 +346,7 @@ export default function Search() {
                                   ))}
                                 </div>
                                 <span className="text-sm text-gray-700">
-                                  {language === 'fa' ? '�� بالاتر' : '& Up'}
+                                  {language === 'fa' ? 'و بالاتر' : '& Up'}
                                 </span>
                               </motion.button>
                             ))}
