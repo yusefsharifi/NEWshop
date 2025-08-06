@@ -24,6 +24,11 @@ import OrderSuccess from "./pages/OrderSuccess";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/Products";
+import AdminOrders from "./pages/admin/Orders";
+import AdminCategories from "./pages/admin/Categories";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminSettings from "./pages/admin/Settings";
+import ProductForm from "./pages/admin/ProductForm";
 
 const queryClient = new QueryClient();
 
@@ -228,56 +233,32 @@ const App = () => (
               } />
               <Route path="/admin/products/new" element={
                 <ProtectedRoute requireAdmin>
-                  <PlaceholderPage
-                    title="Add New Product"
-                    description="Create a new product for your pool equipment catalog."
-                    suggestedAction="Product creation form with bilingual support coming soon."
-                  />
+                  <ProductForm />
                 </ProtectedRoute>
               } />
               <Route path="/admin/products/:id/edit" element={
                 <ProtectedRoute requireAdmin>
-                  <PlaceholderPage
-                    title="Edit Product"
-                    description="Modify product details and specifications."
-                    suggestedAction="Product editing form with full CRUD functionality coming soon."
-                  />
+                  <ProductForm />
                 </ProtectedRoute>
               } />
               <Route path="/admin/orders" element={
                 <ProtectedRoute requireAdmin>
-                  <PlaceholderPage
-                    title="Orders Management"
-                    description="View and manage customer orders."
-                    suggestedAction="Order management system with status tracking coming soon."
-                  />
+                  <AdminOrders />
                 </ProtectedRoute>
               } />
               <Route path="/admin/categories" element={
                 <ProtectedRoute requireAdmin>
-                  <PlaceholderPage
-                    title="Categories Management"
-                    description="Manage product categories and subcategories."
-                    suggestedAction="Category management with hierarchical organization coming soon."
-                  />
+                  <AdminCategories />
                 </ProtectedRoute>
               } />
               <Route path="/admin/customers" element={
                 <ProtectedRoute requireAdmin>
-                  <PlaceholderPage
-                    title="Customer Management"
-                    description="View and manage customer accounts."
-                    suggestedAction="Customer relationship management system coming soon."
-                  />
+                  <AdminCustomers />
                 </ProtectedRoute>
               } />
               <Route path="/admin/settings" element={
                 <ProtectedRoute requireAdmin>
-                  <PlaceholderPage
-                    title="Admin Settings"
-                    description="Configure store settings and preferences."
-                    suggestedAction="Admin configuration panel coming soon."
-                  />
+                  <AdminSettings />
                 </ProtectedRoute>
               } />
 
