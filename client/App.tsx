@@ -225,46 +225,58 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/admin/products/new" element={
-                <PlaceholderPage
-                  title="Add New Product"
-                  description="Create a new product for your pool equipment catalog."
-                  suggestedAction="Product creation form with bilingual support coming soon."
-                />
+                <ProtectedRoute requireAdmin>
+                  <PlaceholderPage
+                    title="Add New Product"
+                    description="Create a new product for your pool equipment catalog."
+                    suggestedAction="Product creation form with bilingual support coming soon."
+                  />
+                </ProtectedRoute>
               } />
               <Route path="/admin/products/:id/edit" element={
-                <PlaceholderPage
-                  title="Edit Product"
-                  description="Modify product details and specifications."
-                  suggestedAction="Product editing form with full CRUD functionality coming soon."
-                />
+                <ProtectedRoute requireAdmin>
+                  <PlaceholderPage
+                    title="Edit Product"
+                    description="Modify product details and specifications."
+                    suggestedAction="Product editing form with full CRUD functionality coming soon."
+                  />
+                </ProtectedRoute>
               } />
               <Route path="/admin/orders" element={
-                <PlaceholderPage
-                  title="Orders Management"
-                  description="View and manage customer orders."
-                  suggestedAction="Order management system with status tracking coming soon."
-                />
+                <ProtectedRoute requireAdmin>
+                  <PlaceholderPage
+                    title="Orders Management"
+                    description="View and manage customer orders."
+                    suggestedAction="Order management system with status tracking coming soon."
+                  />
+                </ProtectedRoute>
               } />
               <Route path="/admin/categories" element={
-                <PlaceholderPage
-                  title="Categories Management"
-                  description="Manage product categories and subcategories."
-                  suggestedAction="Category management with hierarchical organization coming soon."
-                />
+                <ProtectedRoute requireAdmin>
+                  <PlaceholderPage
+                    title="Categories Management"
+                    description="Manage product categories and subcategories."
+                    suggestedAction="Category management with hierarchical organization coming soon."
+                  />
+                </ProtectedRoute>
               } />
               <Route path="/admin/customers" element={
-                <PlaceholderPage
-                  title="Customer Management"
-                  description="View and manage customer accounts."
-                  suggestedAction="Customer relationship management system coming soon."
-                />
+                <ProtectedRoute requireAdmin>
+                  <PlaceholderPage
+                    title="Customer Management"
+                    description="View and manage customer accounts."
+                    suggestedAction="Customer relationship management system coming soon."
+                  />
+                </ProtectedRoute>
               } />
               <Route path="/admin/settings" element={
-                <PlaceholderPage
-                  title="Admin Settings"
-                  description="Configure store settings and preferences."
-                  suggestedAction="Admin configuration panel coming soon."
-                />
+                <ProtectedRoute requireAdmin>
+                  <PlaceholderPage
+                    title="Admin Settings"
+                    description="Configure store settings and preferences."
+                    suggestedAction="Admin configuration panel coming soon."
+                  />
+                </ProtectedRoute>
               } />
 
               <Route path="*" element={<NotFound />} />
