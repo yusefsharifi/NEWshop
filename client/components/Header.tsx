@@ -17,6 +17,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { language, setLanguage, t, dir } = useLanguage();
+  const { setIsOpen, itemCount } = useCart();
 
   const navigation = [
     { name: t('nav.products'), href: '/products' },
