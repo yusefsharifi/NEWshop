@@ -137,7 +137,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
 
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">Welcome, Admin</span>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    {user?.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-medium text-gray-900">
+                      {language === 'fa' ? 'خوش آمدید' : 'Welcome'}, {user?.username}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {language === 'fa' ? 'مدیر سیستم' : 'System Administrator'}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
