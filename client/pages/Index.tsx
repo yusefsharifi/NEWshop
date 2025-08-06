@@ -163,37 +163,58 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map((category, index) => (
-              <Link key={index} to={category.href}>
-                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 overflow-hidden">
-                  <div className="relative">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium`}>
-                      {category.count}
-                    </div>
-                  </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(6)].map((_, index) => (
+                <Card key={index} className="border-0 overflow-hidden">
+                  <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
                   <CardContent className="p-6">
-                    <div className={`flex items-center mb-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                      <div className={`w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`}>
-                        <category.icon className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900">{category.name}</h3>
-                    </div>
-                    <p className="text-gray-600 mb-4">{category.description}</p>
-                    <div className={`flex items-center text-blue-600 font-medium group-hover:text-blue-700 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                      {t('category.shopNow')}
-                      <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'mr-2 group-hover:-translate-x-1' : 'ml-2 group-hover:translate-x-1'} transition-transform`} />
-                    </div>
+                    <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                    <div className="h-3 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20 animate-pulse"></div>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {categories.map((category) => {
+                const IconComponent = getIconComponent(category.icon);
+                const categoryName = language === 'fa' ? category.name_fa : category.name_en;
+                const categoryDescription = language === 'fa' ? category.description_fa : category.description_en;
+
+                return (
+                  <Link key={category.id} to={`/category/${category.slug}`}>
+                    <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 overflow-hidden">
+                      <div className="relative">
+                        <img
+                          src="/api/placeholder/300/200"
+                          alt={categoryName}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium`}>
+                          {language === 'fa' ? '+ محصول' : '+ Products'}
+                        </div>
+                      </div>
+                      <CardContent className="p-6">
+                        <div className={`flex items-center mb-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                          <div className={`w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`}>
+                            <IconComponent className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-gray-900">{categoryName}</h3>
+                        </div>
+                        <p className="text-gray-600 mb-4">{categoryDescription}</p>
+                        <div className={`flex items-center text-blue-600 font-medium group-hover:text-blue-700 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                          {t('category.shopNow')}
+                          <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'mr-2 group-hover:-translate-x-1' : 'ml-2 group-hover:translate-x-1'} transition-transform`} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
