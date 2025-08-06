@@ -125,14 +125,87 @@ export default function Header() {
 
           {/* Right side actions */}
           <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`hidden md:flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'} text-gray-700 hover:text-blue-600`}
-            >
-              <User className="w-5 h-5" />
-              <span>{t('header.login')}</span>
-            </Button>
+            {/* User Authentication */}
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`hidden md:flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'} text-gray-700 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100 transition-colors`}
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      {user?.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-semibold">{user?.username}</div>
+                      <div className="text-xs text-gray-500">
+                        {user?.role === 'admin' ? (language === 'fa' ? 'ادمین' : 'Admin') : (language === 'fa' ? 'کاربر' : 'User')}
+                      </div>
+                    </div>
+                  </motion.button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium">{user?.username}</p>
+                    <p className="text-xs text-gray-500">{user?.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/account" className="cursor-pointer">
+                      <User className="w-4 h-4 mr-2" />
+                      {language === 'fa' ? 'حساب کاربری' : 'My Account'}
+                    </Link>
+                  </DropdownMenuItem>
+
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="cursor-pointer">
+                        <Shield className="w-4 h-4 mr-2" />
+                        {language === 'fa' ? 'پنل مدیریت' : 'Admin Panel'}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="cursor-pointer">
+                      <Settings className="w-4 h-4 mr-2" />
+                      {language === 'fa' ? 'تنظیمات' : 'Settings'}
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                    }}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    {language === 'fa' ? 'خروج' : 'Sign Out'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`hidden md:flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'} text-gray-700 hover:text-blue-600`}
+                  >
+                    <User className="w-5 h-5" />
+                    <span>{t('header.login')}</span>
+                  </Button>
+                </motion.div>
+              </Link>
+            )}
 
             <motion.button
               whileHover={{ scale: 1.05 }}
