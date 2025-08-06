@@ -89,7 +89,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
+          <nav className={`hidden lg:flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-8' : 'space-x-8'}`}>
             {navigation.slice(0, 6).map((item) => (
               <Link
                 key={item.name}
@@ -106,35 +106,36 @@ export default function Header() {
             <div className="relative w-full">
               <Input
                 type="text"
-                placeholder="Search pool equipment..."
+                placeholder={t('header.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`${dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                dir={dir}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className={`absolute ${dir === 'rtl' ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
             </div>
           </div>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-4">
+          <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
             <Button
               variant="ghost"
               size="sm"
-              className="hidden md:flex items-center space-x-2 text-gray-700 hover:text-blue-600"
+              className={`hidden md:flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'} text-gray-700 hover:text-blue-600`}
             >
               <User className="w-5 h-5" />
-              <span>Login</span>
+              <span>{t('header.login')}</span>
             </Button>
 
             <Link to="/cart" className="relative">
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center space-x-2 text-gray-700 hover:text-blue-600"
+                className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'} text-gray-700 hover:text-blue-600`}
               >
                 <ShoppingCart className="w-5 h-5" />
-                <span className="hidden sm:inline">Cart</span>
-                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="hidden sm:inline">{t('header.cart')}</span>
+                <span className={`absolute -top-2 ${dir === 'rtl' ? '-left-2' : '-right-2'} bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center`}>
                   0
                 </span>
               </Button>
