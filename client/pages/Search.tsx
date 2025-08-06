@@ -245,6 +245,7 @@ export default function Search() {
 
                       <div className="space-y-6">
                         {/* Category Filter */}
+                        {filterOptions && filterOptions.categories && (
                         <div>
                           <Label className="text-sm font-medium text-gray-700 mb-3 block">
                             {language === 'fa' ? 'دسته‌بندی' : 'Category'}
@@ -267,8 +268,10 @@ export default function Search() {
                             </SelectContent>
                           </Select>
                         </div>
+                        )}
 
                         {/* Brand Filter */}
+                        {filterOptions && filterOptions.brands && (
                         <div>
                           <Label className="text-sm font-medium text-gray-700 mb-3 block">
                             {language === 'fa' ? 'برند' : 'Brand'}
@@ -291,6 +294,7 @@ export default function Search() {
                             </SelectContent>
                           </Select>
                         </div>
+                        )}
 
                         {/* Price Range */}
                         <div>
