@@ -105,6 +105,8 @@ const App = () => (
                 />
               } />
 
+              <Route path="/checkout" element={<Checkout />} />
+
               <Route path="/account" element={
                 <PlaceholderPage
                   title="Customer Account"
