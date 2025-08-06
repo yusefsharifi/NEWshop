@@ -162,7 +162,29 @@ export function useSearch() {
   }, [products, language]);
 
   const updateFilters = (newFilters: Partial<SearchFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    // Sanitize the input values
+    const sanitizedFilters: Partial<SearchFilters> = {};
+
+    if (newFilters.category !== undefined) {
+      sanitizedFilters.category = typeof newFilters.category === 'string' ? newFilters.category : '';
+    }
+    if (newFilters.brand !== undefined) {
+      sanitizedFilters.brand = typeof newFilters.brand === 'string' ? newFilters.brand : '';
+    }
+    if (newFilters.minPrice !== undefined) {
+      sanitizedFilters.minPrice = typeof newFilters.minPrice === 'number' ? newFilters.minPrice : 0;
+    }
+    if (newFilters.maxPrice !== undefined) {
+      sanitizedFilters.maxPrice = typeof newFilters.maxPrice === 'number' ? newFilters.maxPrice : 10000;
+    }
+    if (newFilters.rating !== undefined) {
+      sanitizedFilters.rating = typeof newFilters.rating === 'number' ? newFilters.rating : 0;
+    }
+    if (newFilters.bestsellers !== undefined) {
+      sanitizedFilters.bestsellers = Boolean(newFilters.bestsellers);
+    }
+
+    setFilters(prev => ({ ...prev, ...sanitizedFilters }));
   };
 
   const clearFilters = () => {
