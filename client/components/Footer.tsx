@@ -3,26 +3,30 @@ import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'luci
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Footer() {
+  const { t, dir, language } = useLanguage();
+
   return (
-    <footer className="bg-navy-900 text-white">
+    <footer className="bg-navy-900 text-white" dir={dir}>
       {/* Main footer content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
-          <div>
-            <div className="flex items-center space-x-3 mb-4">
+          <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
+            <div className={`flex items-center mb-4 ${dir === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <div className="w-4 h-4 bg-white rounded-full opacity-90"></div>
               </div>
               <div>
-                <h3 className="text-xl font-bold">AquaPro</h3>
-                <p className="text-sm text-gray-300">Pool Equipment Experts</p>
+                <h3 className="text-xl font-bold">
+                  {language === 'fa' ? 'آکواپرو' : 'AquaPro'}
+                </h3>
+                <p className="text-sm text-gray-300">{t('footer.company')}</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm mb-4">
-              Your trusted partner for professional swimming pool equipment. Serving residential and commercial customers with quality products and expert support.
+              {t('footer.description')}
             </p>
-            <div className="flex space-x-4">
+            <div className={`flex ${dir === 'rtl' ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">
                 <Facebook className="w-5 h-5" />
               </a>
