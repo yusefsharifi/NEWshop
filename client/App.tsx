@@ -11,6 +11,7 @@ import { CartProvider } from "./contexts/CartContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
+import WhatsAppWidget from "./components/WhatsAppWidget";
 import PlaceholderPage from "./components/PlaceholderPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
