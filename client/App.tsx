@@ -206,6 +206,52 @@ const App = () => (
                 />
               } />
 
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/products/new" element={
+                <PlaceholderPage
+                  title="Add New Product"
+                  description="Create a new product for your pool equipment catalog."
+                  suggestedAction="Product creation form with bilingual support coming soon."
+                />
+              } />
+              <Route path="/admin/products/:id/edit" element={
+                <PlaceholderPage
+                  title="Edit Product"
+                  description="Modify product details and specifications."
+                  suggestedAction="Product editing form with full CRUD functionality coming soon."
+                />
+              } />
+              <Route path="/admin/orders" element={
+                <PlaceholderPage
+                  title="Orders Management"
+                  description="View and manage customer orders."
+                  suggestedAction="Order management system with status tracking coming soon."
+                />
+              } />
+              <Route path="/admin/categories" element={
+                <PlaceholderPage
+                  title="Categories Management"
+                  description="Manage product categories and subcategories."
+                  suggestedAction="Category management with hierarchical organization coming soon."
+                />
+              } />
+              <Route path="/admin/customers" element={
+                <PlaceholderPage
+                  title="Customer Management"
+                  description="View and manage customer accounts."
+                  suggestedAction="Customer relationship management system coming soon."
+                />
+              } />
+              <Route path="/admin/settings" element={
+                <PlaceholderPage
+                  title="Admin Settings"
+                  description="Configure store settings and preferences."
+                  suggestedAction="Admin configuration panel coming soon."
+                />
+              } />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
