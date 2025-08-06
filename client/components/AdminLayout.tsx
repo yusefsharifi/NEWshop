@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               className="w-full group flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 hover:text-red-700 transition-colors"
             >
               <LogOut className={`flex-shrink-0 w-5 h-5 ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`} />
-              {language === 'fa' ? 'خروج' : 'Logout'}
+              {t('logout', 'Logout')}
             </button>
           </div>
         </nav>

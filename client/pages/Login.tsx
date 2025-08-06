@@ -118,41 +118,6 @@ export default function Login() {
           </p>
         </motion.div>
 
-        {/* Demo Credentials Info */}
-        <motion.div variants={itemVariants} className="mb-6">
-          <Card className="border-2 border-blue-100 bg-blue-50/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
-                {language === 'fa' ? 'اطلاعات ورود آزمایشی' : 'Demo Login Credentials'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="bg-white/60 p-3 rounded-lg">
-                <div className="font-medium text-gray-900">
-                  {language === 'fa' ? 'ادمین:' : 'Admin:'}
-                </div>
-                <div className="text-gray-700">
-                  {language === 'fa' ? 'کاربری:' : 'Username:'} <code className="bg-gray-200 px-1 rounded">admin</code>
-                </div>
-                <div className="text-gray-700">
-                  {language === 'fa' ? 'رمز:' : 'Password:'} <code className="bg-gray-200 px-1 rounded">admin123</code>
-                </div>
-              </div>
-              <div className="bg-white/60 p-3 rounded-lg">
-                <div className="font-medium text-gray-900">
-                  {language === 'fa' ? 'کاربر:' : 'User:'}
-                </div>
-                <div className="text-gray-700">
-                  {language === 'fa' ? 'کاربری:' : 'Username:'} <code className="bg-gray-200 px-1 rounded">user</code>
-                </div>
-                <div className="text-gray-700">
-                  {language === 'fa' ? 'رمز:' : 'Password:'} <code className="bg-gray-200 px-1 rounded">user123</code>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
         {/* Login Form */}
         <motion.div variants={itemVariants}>
