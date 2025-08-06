@@ -133,40 +133,40 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" dir={dir}>
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-navy-800 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
+            <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
               <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
-                Professional Pool Equipment 
-                <span className="text-blue-300"> You Can Trust</span>
+                {t('home.hero.title')}
+                <span className="text-blue-300"> {t('home.hero.subtitle')}</span>
               </h1>
               <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-                From residential pools to commercial facilities, we provide top-quality pumps, filters, heaters, and accessories. Expert advice and professional installation available.
+                {t('home.hero.description')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="bg-white text-blue-700 hover:bg-gray-100 font-semibold">
-                  Shop Equipment
-                  <ArrowRight className="ml-2 w-5 h-5" />
+                  {t('home.hero.shopButton')}
+                  <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
                 </Button>
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-700">
-                  Free Consultation
+                  {t('home.hero.consultationButton')}
                 </Button>
               </div>
             </div>
             <div className="relative">
               <div className="relative z-10 bg-white rounded-lg shadow-2xl p-6">
-                <img 
-                  src="/api/placeholder/500/400" 
-                  alt="Professional pool equipment" 
+                <img
+                  src="/api/placeholder/500/400"
+                  alt="Professional pool equipment"
                   className="w-full h-auto rounded-lg"
                 />
               </div>
-              <div className="absolute -top-4 -right-4 w-72 h-72 bg-blue-400 rounded-full opacity-20"></div>
-              <div className="absolute -bottom-8 -left-8 w-64 h-64 bg-navy-600 rounded-full opacity-30"></div>
+              <div className={`absolute -top-4 ${dir === 'rtl' ? '-left-4' : '-right-4'} w-72 h-72 bg-blue-400 rounded-full opacity-20`}></div>
+              <div className={`absolute -bottom-8 ${dir === 'rtl' ? '-right-8' : '-left-8'} w-64 h-64 bg-navy-600 rounded-full opacity-30`}></div>
             </div>
           </div>
         </div>
