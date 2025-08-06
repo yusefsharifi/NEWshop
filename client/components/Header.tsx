@@ -28,24 +28,42 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-100 sticky top-0 z-50">
+    <header className="bg-white shadow-lg border-b border-gray-100 sticky top-0 z-50" dir={dir}>
       {/* Top bar */}
       <div className="bg-navy-900 text-white py-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center text-sm">
-            <div className="flex items-center space-x-6">
+            <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-6' : 'space-x-6'}`}>
               <span className="flex items-center">
-                <Phone className="w-4 h-4 mr-2" />
-                1-800-POOL-PRO
+                <Phone className={`w-4 h-4 ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`} />
+                {t('header.phone')}
               </span>
-              <span>Free shipping on orders over $500</span>
+              <span>{t('header.freeShipping')}</span>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
+              {/* Language Switcher */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:text-blue-300">
+                    <Globe className="w-4 h-4 mr-2" />
+                    {language === 'fa' ? 'فا' : 'EN'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setLanguage('en')}>
+                    🇺🇸 English
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLanguage('fa')}>
+                    🇮🇷 فارسی
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Link to="/account" className="hover:text-blue-300 transition-colors">
-                My Account
+                {t('header.myAccount')}
               </Link>
               <Link to="/track-order" className="hover:text-blue-300 transition-colors">
-                Track Order
+                {t('header.trackOrder')}
               </Link>
             </div>
           </div>
