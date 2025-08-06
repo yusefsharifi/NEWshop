@@ -194,10 +194,10 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Shop by Category
+              {t('category.title')}
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Find the perfect equipment for your pool with our comprehensive selection of professional-grade products
+              {t('category.subtitle')}
             </p>
           </div>
 
@@ -206,26 +206,26 @@ export default function Index() {
               <Link key={index} to={category.href}>
                 <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 overflow-hidden">
                   <div className="relative">
-                    <img 
-                      src={category.image} 
+                    <img
+                      src={category.image}
                       alt={category.name}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    <div className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium`}>
                       {category.count}
                     </div>
                   </div>
                   <CardContent className="p-6">
-                    <div className="flex items-center mb-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <div className={`flex items-center mb-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                      <div className={`w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`}>
                         <category.icon className="w-5 h-5 text-blue-600" />
                       </div>
                       <h3 className="text-xl font-semibold text-gray-900">{category.name}</h3>
                     </div>
                     <p className="text-gray-600 mb-4">{category.description}</p>
-                    <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                      Shop Now
-                      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <div className={`flex items-center text-blue-600 font-medium group-hover:text-blue-700 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                      {t('category.shopNow')}
+                      <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'mr-2 group-hover:-translate-x-1' : 'ml-2 group-hover:translate-x-1'} transition-transform`} />
                     </div>
                   </CardContent>
                 </Card>
