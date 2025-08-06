@@ -149,10 +149,14 @@ export function useSearch() {
 
   // Get unique brands and categories for filter options
   const filterOptions = useMemo(() => {
-    const brands = [...new Set(products.map(p => p.brand).filter(Boolean))];
-    const categories = [...new Set(products.map(p =>
-      language === 'fa' ? p.category_name_fa : p.category_name_en
-    ).filter(Boolean))];
+    const brands = [...new Set(products
+      .map(p => p.brand)
+      .filter(brand => brand && typeof brand === 'string' && brand.trim() !== '')
+    )];
+    const categories = [...new Set(products
+      .map(p => language === 'fa' ? p.category_name_fa : p.category_name_en)
+      .filter(category => category && typeof category === 'string' && category.trim() !== '')
+    )];
 
     return { brands, categories };
   }, [products, language]);
