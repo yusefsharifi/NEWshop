@@ -127,43 +127,299 @@ export default function Index() {
 
   return (
     <div className="min-h-screen" dir={dir}>
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {[...Array(15)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-30"
+            initial={{
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight,
+            }}
+            animate={{
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight,
+            }}
+            transition={{
+              duration: Math.random() * 20 + 20,
+              repeat: Infinity,
+              repeatType: "reverse",
+              ease: "linear"
+            }}
+          />
+        ))}
+      </div>
+
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-navy-800 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+      <motion.section
+        ref={heroRef}
+        style={{ y: heroY, opacity: heroOpacity }}
+        className="relative min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white overflow-hidden flex items-center"
+      >
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+          <motion.div
+            className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-400 rounded-full opacity-20 blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          <motion.div
+            className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-indigo-400 rounded-full opacity-20 blur-3xl"
+            animate={{
+              scale: [1.2, 1, 1.2],
+              rotate: [360, 180, 0],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
-              <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
-                {t('home.hero.title')}
-                <span className="text-blue-300"> {t('home.hero.subtitle')}</span>
-              </h1>
-              <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+            <motion.div
+              initial={{ opacity: 0, x: dir === 'rtl' ? 50 : -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className={dir === 'rtl' ? 'text-right' : 'text-left'}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-blue-100 text-sm font-medium mb-6"
+              >
+                <Award className="w-4 h-4 mr-2" />
+                {language === 'fa' ? 'بیش از ۱۰ سال تجربه' : '10+ Years of Excellence'}
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="text-5xl lg:text-7xl font-bold leading-tight mb-6"
+              >
+                <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                  {t('home.hero.title')}
+                </span>
+                <br />
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8, duration: 0.6, type: "spring" }}
+                  className="text-blue-300"
+                >
+                  {t('home.hero.subtitle')}
+                </motion.span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+                className="text-xl text-blue-100 mb-8 leading-relaxed max-w-2xl"
+              >
                 {t('home.hero.description')}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-white text-blue-700 hover:bg-gray-100 font-semibold">
-                  {t('home.hero.shopButton')}
-                  <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
-                </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-700">
-                  {t('home.hero.consultationButton')}
-                </Button>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="relative z-10 bg-white rounded-lg shadow-2xl p-6">
-                <img
-                  src="/api/placeholder/500/400"
-                  alt="Professional pool equipment"
-                  className="w-full h-auto rounded-lg"
-                />
-              </div>
-              <div className={`absolute -top-4 ${dir === 'rtl' ? '-left-4' : '-right-4'} w-72 h-72 bg-blue-400 rounded-full opacity-20`}></div>
-              <div className={`absolute -bottom-8 ${dir === 'rtl' ? '-right-8' : '-left-8'} w-64 h-64 bg-navy-600 rounded-full opacity-30`}></div>
-            </div>
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.8 }}
+                className="flex flex-col sm:flex-row gap-6"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link to="/products">
+                    <Button size="lg" className="bg-white text-blue-700 hover:bg-gray-100 font-semibold shadow-2xl h-14 px-8">
+                      {t('home.hero.shopButton')}
+                      <motion.div
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                      >
+                        <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
+                      </motion.div>
+                    </Button>
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-blue-700 h-14 px-8 backdrop-blur-sm">
+                    <Play className="w-5 h-5 mr-2" />
+                    {t('home.hero.consultationButton')}
+                  </Button>
+                </motion.div>
+              </motion.div>
+
+              {/* Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2, duration: 0.8 }}
+                className="grid grid-cols-3 gap-8 mt-12 pt-8 border-t border-white/20"
+              >
+                {[
+                  { number: '10K+', label: language === 'fa' ? 'مشتری راضی' : 'Happy Customers' },
+                  { number: '500+', label: language === 'fa' ? 'محصول' : 'Products' },
+                  { number: '24/7', label: language === 'fa' ? '��شتیبانی' : 'Support' }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1.4 + index * 0.1, type: "spring" }}
+                    className="text-center"
+                  >
+                    <div className="text-2xl font-bold text-white">{stat.number}</div>
+                    <div className="text-blue-200 text-sm">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: dir === 'rtl' ? -50 : 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+              className="relative"
+              style={{
+                transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
+              }}
+            >
+              <motion.div
+                className="relative z-10"
+                whileHover={{
+                  rotateY: 10,
+                  rotateX: 10,
+                  scale: 1.05
+                }}
+                transition={{ type: "spring", stiffness: 300 }}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+                  <img
+                    src="/api/placeholder/500/400"
+                    alt="Professional pool equipment"
+                    className="w-full h-auto rounded-2xl shadow-xl"
+                  />
+
+                  {/* Floating Cards */}
+                  <motion.div
+                    className="absolute -top-6 -left-6 bg-white rounded-2xl p-4 shadow-xl"
+                    animate={{
+                      y: [0, -10, 0],
+                      rotate: [0, 5, 0]
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          {language === 'fa' ? 'کیفیت تضمینی' : 'Quality Assured'}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {language === 'fa' ? 'ضمانت ۲ ساله' : '2 Year Warranty'}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-4 shadow-xl"
+                    animate={{
+                      y: [0, 10, 0],
+                      rotate: [0, -5, 0]
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 1
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          {language === 'fa' ? 'فروش بالا' : 'Top Rated'}
+                        </div>
+                        <div className="text-sm text-gray-600">4.9/5 ⭐</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+
+              {/* Background Decorations */}
+              <motion.div
+                className="absolute -top-8 -right-8 w-32 h-32 bg-blue-400 rounded-full opacity-30 blur-2xl"
+                animate={{
+                  scale: [1, 1.3, 1],
+                  opacity: [0.3, 0.5, 0.3]
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div
+                className="absolute -bottom-8 -left-8 w-40 h-40 bg-indigo-400 rounded-full opacity-20 blur-2xl"
+                animate={{
+                  scale: [1.2, 1, 1.2],
+                  opacity: [0.2, 0.4, 0.2]
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1
+                }}
+              />
+            </motion.div>
           </div>
         </div>
-      </section>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
+            <motion.div
+              className="w-1 h-3 bg-white rounded-full mt-2"
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          </div>
+        </motion.div>
+      </motion.section>
 
       {/* Features */}
       <section className="py-16 bg-gray-50">
