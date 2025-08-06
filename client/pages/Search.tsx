@@ -23,12 +23,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSearch } from '@/hooks/useSearch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t, dir, language } = useLanguage();
   const { addItem } = useCart();
+  const isMobile = useMobile();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
@@ -205,7 +207,7 @@ export default function Search() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <AnimatePresence>
-            {(isFilterOpen || window.innerWidth >= 1024) && (
+            {(isFilterOpen || !isMobile) && (
               <motion.div
                 variants={filterVariants}
                 initial="hidden"
@@ -344,7 +346,7 @@ export default function Search() {
                                   ))}
                                 </div>
                                 <span className="text-sm text-gray-700">
-                                  {language === 'fa' ? 'و بالاتر' : '& Up'}
+                                  {language === 'fa' ? '�� بالاتر' : '& Up'}
                                 </span>
                               </motion.button>
                             ))}
