@@ -230,49 +230,68 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {bestSellers.map((product) => (
-              <Link key={product.id} to={`/product/${product.id}`}>
-                <Card className="group hover:shadow-lg transition-all duration-300 border-0 overflow-hidden">
-                  <div className="relative">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className={`absolute top-3 ${dir === 'rtl' ? 'right-3' : 'left-3'} bg-green-500 text-white px-2 py-1 rounded text-xs font-medium`}>
-                      {product.badge}
-                    </div>
-                  </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <Card key={index} className="border-0 overflow-hidden">
+                  <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className={`flex items-center mb-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className={`text-sm text-gray-600 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>({product.reviews})</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xl font-bold text-gray-900">${product.price}</span>
-                        {product.originalPrice && (
-                          <span className={`text-sm text-gray-500 line-through ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>${product.originalPrice}</span>
-                        )}
-                      </div>
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    </div>
+                    <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                    <div className="h-3 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {bestSellers.map((product) => {
+                const productName = language === 'fa' ? product.name_fa : product.name_en;
+
+                return (
+                  <Link key={product.id} to={`/product/${product.id}`}>
+                    <Card className="group hover:shadow-lg transition-all duration-300 border-0 overflow-hidden">
+                      <div className="relative">
+                        <img
+                          src={product.image_url}
+                          alt={productName}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className={`absolute top-3 ${dir === 'rtl' ? 'right-3' : 'left-3'} bg-green-500 text-white px-2 py-1 rounded text-xs font-medium`}>
+                          {language === 'fa' ? 'پرفروش' : 'Best Seller'}
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                          {productName}
+                        </h3>
+                        <div className={`flex items-center mb-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              />
+                            ))}
+                          </div>
+                          <span className={`text-sm text-gray-600 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>({product.review_count})</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xl font-bold text-gray-900">${product.price}</span>
+                            {product.original_price && (
+                              <span className={`text-sm text-gray-500 line-through ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>${product.original_price}</span>
+                            )}
+                          </div>
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           <div className="text-center mt-10">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
