@@ -14,16 +14,17 @@ import {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { language, setLanguage, t, dir } = useLanguage();
 
   const navigation = [
-    { name: 'Products', href: '/products' },
-    { name: 'Pumps', href: '/category/pumps' },
-    { name: 'Filters', href: '/category/filters' },
-    { name: 'Heaters', href: '/category/heaters' },
-    { name: 'Chemicals', href: '/category/chemicals' },
-    { name: 'Accessories', href: '/category/accessories' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Contact', href: '/contact' },
+    { name: t('nav.products'), href: '/products' },
+    { name: t('nav.pumps'), href: '/category/pumps' },
+    { name: t('nav.filters'), href: '/category/filters' },
+    { name: t('nav.heaters'), href: '/category/heaters' },
+    { name: t('nav.chemicals'), href: '/category/chemicals' },
+    { name: t('nav.accessories'), href: '/category/accessories' },
+    { name: t('nav.blog'), href: '/blog' },
+    { name: t('nav.contact'), href: '/contact' },
   ];
 
   return (
