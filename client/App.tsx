@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { CartProvider } from "./contexts/CartContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationProvider } from "./components/NotificationSystem";
 import HeaderNew from "./components/HeaderNew";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
