@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -75,7 +76,7 @@ export default function OrderTracking() {
       events: [
         {
           id: '1',
-          title: language === 'fa' ? '��فارش ثبت شد' : 'Order Placed',
+          title: language === 'fa' ? 'سفارش ثبت شد' : 'Order Placed',
           description: language === 'fa' ? 'سفارش شما با موفقیت ثبت و پردازش شد' : 'Your order has been placed and processed',
           timestamp: '2024-01-15T10:30:00Z',
           location: 'تهران، دفتر مرکزی آکواپرو',
