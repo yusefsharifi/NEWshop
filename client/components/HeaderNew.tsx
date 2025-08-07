@@ -18,6 +18,7 @@ import { Input } from './ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationBell } from './NotificationSystem';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DropdownMenu,
