@@ -166,13 +166,7 @@ const App = () => (
                 />
               } />
 
-              <Route path="/faq" element={
-                <PlaceholderPage
-                  title="Frequently Asked Questions"
-                  description="Answers to common questions about pool equipment and maintenance."
-                  suggestedAction="Our FAQ section will cover installation, maintenance, and troubleshooting."
-                />
-              } />
+              <Route path="/faq" element={<FAQ />} />
 
               {/* Legal Pages */}
               <Route path="/privacy" element={
