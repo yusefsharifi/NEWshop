@@ -108,6 +108,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const register = async (userData: RegisterData): Promise<boolean> => {
+    setIsLoading(true);
+
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // In production, this should make an API call to your backend
+      // For now, we'll simulate successful registration
+
+      // Check if username or email already exists (simulation)
+      const existingUsers = ['admin', 'user', 'test'];
+      if (existingUsers.includes(userData.username.toLowerCase())) {
+        setIsLoading(false);
+        return false;
+      }
+
+      // Generate new user ID
+      const newUserId = Math.floor(Math.random() * 10000) + 100;
+
+      const newUser: User = {
+        id: newUserId,
+        username: userData.username,
+        email: userData.email,
+        role: 'user',
+        isActive: true
+      };
+
+      // In production, you would save to backend
+      // For demo, we'll just return success without logging in
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
@@ -122,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isLoading,
       login,
+      register,
       logout,
       isAdmin,
       isAuthenticated
