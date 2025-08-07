@@ -147,13 +147,7 @@ const App = () => (
                 />
               } />
 
-              <Route path="/consultation" element={
-                <PlaceholderPage
-                  title="Free Consultation"
-                  description="Schedule a personalized consultation with our pool experts."
-                  suggestedAction="Book your free consultation to get expert recommendations for your pool."
-                />
-              } />
+              <Route path="/consultation" element={<Consultation />} />
 
               <Route path="/best-sellers" element={
                 <PlaceholderPage
