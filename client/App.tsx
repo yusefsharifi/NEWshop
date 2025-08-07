@@ -135,13 +135,8 @@ const App = () => (
               <Route path="/track-order/:orderId" element={<OrderTracking />} />
 
               {/* Content Pages */}
-              <Route path="/blog" element={
-                <PlaceholderPage
-                  title="Pool Care Blog"
-                  description="Expert tips, maintenance guides, and industry insights."
-                  suggestedAction="Our pool professionals are preparing comprehensive guides and tips."
-                />
-              } />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:id" element={<Blog />} />
 
               <Route path="/contact" element={
                 <PlaceholderPage
