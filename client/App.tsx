@@ -20,6 +20,8 @@ import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import Search from "./pages/Search";
 import SearchSimple from "./pages/SearchSimple";
+import SearchAdvanced from "./pages/SearchAdvanced";
+import ProductComparison from "./pages/ProductComparison";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UserDashboard from "./pages/UserDashboard";
