@@ -22,6 +22,7 @@ import Search from "./pages/Search";
 import SearchSimple from "./pages/SearchSimple";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import UserDashboard from "./pages/UserDashboard";
 import OrderSuccess from "./pages/OrderSuccess";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/admin/Dashboard";
