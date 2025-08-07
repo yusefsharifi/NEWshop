@@ -392,6 +392,9 @@ export default function HeaderNew() {
               </Link>
             )}
 
+            {/* Notifications */}
+            {isAuthenticated && <NotificationBell />}
+
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
