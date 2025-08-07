@@ -110,6 +110,7 @@ const App = () => (
 
               {/* Individual Product Pages */}
               <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/compare" element={<ProductComparison />} />
 
               {/* Customer Pages */}
               <Route path="/cart" element={
