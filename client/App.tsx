@@ -14,6 +14,7 @@ import HeaderNew from "./components/HeaderNew";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
 import WhatsAppWidget from "./components/WhatsAppWidget";
+import LiveChat from "./components/LiveChat";
 import PlaceholderPage from "./components/PlaceholderPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
