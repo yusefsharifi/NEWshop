@@ -47,16 +47,17 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
-        <CartProvider>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-          <div className="min-h-screen flex flex-col">
-            <HeaderNew />
-            <CartDrawer />
-            <WhatsAppWidget />
-            <main className="flex-1">
+        <NotificationProvider>
+          <CartProvider>
+            <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+            <div className="min-h-screen flex flex-col">
+              <HeaderNew />
+              <CartDrawer />
+              <WhatsAppWidget />
+              <main className="flex-1">
             <Routes>
               <Route path="/" element={<Index />} />
 
@@ -258,12 +259,13 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </main>
-          <Footer />
-        </div>
-      </BrowserRouter>
-          </TooltipProvider>
-        </CartProvider>
+            </main>
+            <Footer />
+          </div>
+        </BrowserRouter>
+            </TooltipProvider>
+          </CartProvider>
+        </NotificationProvider>
       </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>
