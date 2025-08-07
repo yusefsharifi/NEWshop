@@ -121,11 +121,9 @@ const App = () => (
               <Route path="/order-success" element={<OrderSuccess />} />
 
               <Route path="/account" element={
-                <PlaceholderPage
-                  title="Customer Account"
-                  description="Manage your orders, preferences, and account information."
-                  suggestedAction="Customer dashboard with order tracking and reorder functionality coming soon."
-                />
+                <ProtectedRoute>
+                  <UserDashboard />
+                </ProtectedRoute>
               } />
 
               <Route path="/track-order" element={
