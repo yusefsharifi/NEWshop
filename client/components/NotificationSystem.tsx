@@ -4,6 +4,7 @@ import {
   Package, Truck, Gift, Star, MessageCircle, Settings,
   Volume2, VolumeX, Mail, Smartphone, Monitor
 } from 'lucide-react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -315,7 +316,7 @@ export const NotificationBell = () => {
                 className="text-blue-600 hover:text-blue-700"
               >
                 <Check className="w-4 h-4 mr-1" />
-                {language === 'fa' ? 'همه را خوانده' : 'Mark all read'}
+                {language === 'fa' ? 'همه ��ا خوانده' : 'Mark all read'}
               </Button>
             )}
           </div>
@@ -599,5 +600,3 @@ export const NotificationSettings = () => {
     </Card>
   );
 };
-
-export default NotificationSystem;
