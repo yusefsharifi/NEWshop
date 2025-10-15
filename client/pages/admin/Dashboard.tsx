@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AdminLayout from '@/components/AdminLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, Bar, BarChart, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, Bar, BarChart } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface DashboardStats {
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
       <div className="space-y-6" dir={dir}>
         <div>
           <h2 className="text-3xl font-bold text-gray-900">{language === 'fa' ? 'نمای کلی داشبورد' : 'Dashboard Overview'}</h2>
-          <p className="text-gray-600">{language === 'fa' ? 'شاخص‌های کلیدی فروش، موجودی و عملکرد' : 'Key sales, inventory, and performance metrics'}</p>
+          <p className="text-gray-600">{language === 'fa' ? 'شاخص‌های کلیدی فر��ش، موجودی و عملکرد' : 'Key sales, inventory, and performance metrics'}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -137,7 +137,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{ revenue: { label: language === 'fa' ? 'درآمد' : 'Revenue', color: '#2563eb' }, orders: { label: language === 'fa' ? 'سفارش' : 'Orders', color: '#16a34a' } }}>
                   <LineChart data={salesData} margin={{ left: 12, right: 12, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="label" />
@@ -146,7 +146,7 @@ export default function AdminDashboard() {
                     <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} dot={false} name={language === 'fa' ? 'درآمد' : 'Revenue'} />
                     <Line type="monotone" dataKey="orders" stroke="#16a34a" strokeWidth={2} dot={false} name={language === 'fa' ? 'سفارش' : 'Orders'} />
                   </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{ orders: { label: language === 'fa' ? 'سفارش' : 'Orders', color: '#10b981' } }}>
                   <BarChart data={salesData} margin={{ left: 12, right: 12, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="label" />
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="orders" fill="#10b981" name={language === 'fa' ? 'سفارش' : 'Orders'} />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
