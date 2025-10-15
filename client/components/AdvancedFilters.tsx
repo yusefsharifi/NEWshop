@@ -89,7 +89,7 @@ export default function AdvancedFilters({ onFiltersChange, totalResults, isLoadi
         { id: 'self_priming', label: language === 'fa' ? 'خودمکش' : 'Self-Priming', count: 22, checked: false },
         { id: 'corrosion_resistant', label: language === 'fa' ? 'ضد خوردگی' : 'Corrosion Resistant', count: 28, checked: false },
         { id: 'digital_display', label: language === 'fa' ? 'نمایشگر دیجیتال' : 'Digital Display', count: 12, checked: false },
-        { id: 'remote_control', label: language === 'fa' ? 'ک��ترل از راه دور' : 'Remote Control', count: 15, checked: false }
+        { id: 'remote_control', label: language === 'fa' ? 'کنترل از راه دور' : 'Remote Control', count: 15, checked: false }
       ]
     },
     {
@@ -231,9 +231,7 @@ export default function AdvancedFilters({ onFiltersChange, totalResults, isLoadi
     onFiltersChange(filters);
   }, [activeFilters, priceRange, selectedRating, showOnlyInStock, showOnlyDiscounted, searchTerm, sortBy]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-  };
+  const formatPrice = (price: number) => formatCurrencyIRR(price);
 
   const renderStars = (rating: number) => {
     return (
