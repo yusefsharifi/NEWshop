@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrencyIRR } from '@/lib/utils';
 
 interface Expert {
   id: number;
@@ -181,9 +182,7 @@ export default function Consultation() {
     setExperts(mockExperts);
   }, []);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-  };
+  const formatPrice = (price: number) => formatCurrencyIRR(price);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat(language === 'fa' ? 'fa-IR' : 'en-US').format(date);
@@ -221,7 +220,7 @@ export default function Consultation() {
       fa: {
         video: 'ویدیو کال',
         phone: 'تماس تلفنی',
-        chat: 'چت آنلاین',
+        chat: 'چ�� آنلاین',
         onsite: 'حضوری'
       },
       en: {
