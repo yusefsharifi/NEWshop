@@ -16,6 +16,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrencyIRR } from '@/lib/utils';
 
 interface Coupon {
   id: string;
@@ -160,7 +161,7 @@ export default function DiscountSystem({
       title_en: 'VIP Customer Discount',
       title_fa: 'تخفیف مشتریان VIP',
       description_en: '15% discount for loyal customers',
-      description_fa: '۱۵٪ تخفیف برای مشتریان وفادار',
+      description_fa: '۱۵٪ تخفیف ��رای مشتریان وفادار',
       type: 'percentage',
       value: 15,
       min_order_amount: 1500000,
@@ -363,9 +364,7 @@ export default function DiscountSystem({
     }, 0);
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-  };
+  const formatPrice = (price: number) => formatCurrencyIRR(price);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
