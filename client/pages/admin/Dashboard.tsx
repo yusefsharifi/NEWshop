@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-mono text-xs">{p.sku}</TableCell>
                       <TableCell>{language === 'fa' ? p.name_fa : p.name_en}</TableCell>
                       <TableCell className="text-right">{p.units}</TableCell>
-                      <TableCell className="text-right">₮{p.revenue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{formatCurrencyIRR(p.revenue)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-mono text-xs">{p.sku}</TableCell>
                       <TableCell>{language === 'fa' ? p.name_fa : p.name_en}</TableCell>
                       <TableCell className="text-right">{p.units}</TableCell>
-                      <TableCell className="text-right">₮{p.revenue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{formatCurrencyIRR(p.revenue)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>{language === 'fa' ? 'سفارش��ها به تفکیک هفته' : 'Orders by Week'}</CardTitle>
+              <CardTitle>{language === 'fa' ? 'س��ارش��ها به تفکیک هفته' : 'Orders by Week'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-64">
