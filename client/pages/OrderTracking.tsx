@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrencyIRR } from '@/lib/utils';
 
 interface TrackingEvent {
   id: string;
@@ -218,9 +219,7 @@ export default function OrderTracking() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-  };
+  const formatPrice = (price: number) => formatCurrencyIRR(price);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -380,7 +379,7 @@ export default function OrderTracking() {
                         <div className="flex items-center space-x-2 mb-2">
                           <Calendar className="w-5 h-5 text-green-600" />
                           <span className="font-medium">
-                            {language === 'fa' ? 'تحویل تخمینی' : 'Estimated Delivery'}
+                            {language === 'fa' ? 'تحو��ل تخمینی' : 'Estimated Delivery'}
                           </span>
                         </div>
                         <p className="text-sm">{formatDate(order.estimatedDelivery)}</p>
