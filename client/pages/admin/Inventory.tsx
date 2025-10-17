@@ -13,11 +13,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AdminLayout from '@/components/AdminLayout';
 import { formatCurrencyIRR } from '@/lib/utils';
-import { Package, Plus, Minus, AlertTriangle, RefreshCcw, ClipboardList, TrendingUp, TrendingDown, Warehouse, FileText, BarChart3, Eye, Edit2, Download } from 'lucide-react';
+import { Package, Plus, Minus, AlertTriangle, RefreshCcw, ClipboardList, TrendingUp, TrendingDown, Warehouse, FileText, BarChart3, Eye, Edit2, Download, QrCode, Users, Zap, CheckCircle, Truck, PieChart, Target, RotateCcw } from 'lucide-react';
 
 interface InventoryItem {
   id: number;
   sku: string;
+  barcode?: string;
   name_en: string;
   name_fa: string;
   stock: number;
@@ -31,13 +32,18 @@ interface InventoryItem {
   expiry_date?: string;
   batch?: string;
   warehouse?: string;
+  abc_class?: 'A' | 'B' | 'C';
+  supplier_id?: number;
+  lead_time_days?: number;
+  defect_rate?: number;
+  last_count_date?: string;
 }
 
 interface StockMovement {
   id: string;
   sku: string;
   productId: number;
-  type: 'in' | 'out' | 'adjustment' | 'transfer' | 'damage';
+  type: 'in' | 'out' | 'adjustment' | 'transfer' | 'damage' | 'return';
   quantity: number;
   note?: string;
   reference?: string;
@@ -48,9 +54,58 @@ interface StockMovement {
   createdBy?: string;
 }
 
+interface Supplier {
+  id: number;
+  name_en: string;
+  name_fa: string;
+  email: string;
+  phone: string;
+  lead_time_days: number;
+  rating: number;
+  total_orders: number;
+  on_time_delivery: number;
+}
+
+interface PurchaseOrder {
+  id: string;
+  supplier_id: number;
+  po_number: string;
+  items: { product_id: number; quantity: number; unit_cost: number }[];
+  total_amount: number;
+  status: 'draft' | 'pending' | 'received' | 'partial';
+  order_date: string;
+  expected_delivery: string;
+  created_at: string;
+}
+
+interface QualityControl {
+  id: string;
+  product_id: number;
+  batch: string;
+  received_qty: number;
+  inspected_qty: number;
+  defect_qty: number;
+  defect_reason?: string;
+  inspection_date: string;
+  inspected_by: string;
+  status: 'pass' | 'fail' | 'conditional';
+}
+
+interface StockTake {
+  id: string;
+  name_fa: string;
+  name_en: string;
+  scheduled_date: string;
+  status: 'planned' | 'in_progress' | 'completed';
+  counted_items: number;
+  total_items: number;
+  variance_amount: number;
+  created_at: string;
+}
+
 interface StockAlert {
   id: string;
-  type: 'low_stock' | 'overstock' | 'expiry_soon' | 'no_movement';
+  type: 'low_stock' | 'overstock' | 'expiry_soon' | 'no_movement' | 'high_defect';
   severity: 'warning' | 'critical';
   itemId: number;
   message_en: string;
@@ -64,10 +119,14 @@ export default function AdminInventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [qualityControls, setQualityControls] = useState<QualityControl[]>([]);
+  const [stockTakes, setStockTakes] = useState<StockTake[]>([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Stock Entry Dialog
+  // Stock Entry/Exit/Adjust Dialogs
   const [entryOpen, setEntryOpen] = useState(false);
   const [entryItem, setEntryItem] = useState<InventoryItem | null>(null);
   const [entryQty, setEntryQty] = useState<number>(0);
@@ -76,47 +135,81 @@ export default function AdminInventory() {
   const [entryNote, setEntryNote] = useState('');
   const [entryBatch, setEntryBatch] = useState('');
 
-  // Stock Exit Dialog
   const [exitOpen, setExitOpen] = useState(false);
   const [exitItem, setExitItem] = useState<InventoryItem | null>(null);
   const [exitQty, setExitQty] = useState<number>(0);
-  const [exitType, setExitType] = useState<'out' | 'damage' | 'loss'>('out');
+  const [exitType, setExitType] = useState<'out' | 'damage' | 'return'>('out');
   const [exitReference, setExitReference] = useState('');
   const [exitNote, setExitNote] = useState('');
 
-  // Stock Adjustment Dialog
-  const [adjustOpen, setAdjustOpen] = useState(false);
-  const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
-  const [adjustQty, setAdjustQty] = useState<number>(0);
-  const [adjustReason, setAdjustReason] = useState('');
-  const [adjustNote, setAdjustNote] = useState('');
+  // QC Dialog
+  const [qcOpen, setQcOpen] = useState(false);
+  const [qcItem, setQcItem] = useState<InventoryItem | null>(null);
+  const [qcReceivedQty, setQcReceivedQty] = useState<number>(0);
+  const [qcInspectedQty, setQcInspectedQty] = useState<number>(0);
+  const [qcDefectQty, setQcDefectQty] = useState<number>(0);
+  const [qcDefectReason, setQcDefectReason] = useState('');
 
-  // Stock Transfer Dialog
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [transferItem, setTransferItem] = useState<InventoryItem | null>(null);
-  const [transferQty, setTransferQty] = useState<number>(0);
-  const [transferFromLoc, setTransferFromLoc] = useState('');
-  const [transferToLoc, setTransferToLoc] = useState('');
-  const [transferNote, setTransferNote] = useState('');
+  // Stock Take Dialog
+  const [stockTakeOpen, setStockTakeOpen] = useState(false);
+  const [stockTakeName, setStockTakeName] = useState('');
+  const [stockTakeDate, setStockTakeDate] = useState('');
 
-  // Item Details Dialog
+  // PO Dialog
+  const [poOpen, setPoOpen] = useState(false);
+  const [poSupplier, setPoSupplier] = useState<string>('');
+  const [poItems, setPoItems] = useState<{ product_id: number; quantity: number; unit_cost: number }[]>([]);
+
+  // Item Details
   const [detailsItem, setDetailsItem] = useState<InventoryItem | null>(null);
   const [itemMovements, setItemMovements] = useState<StockMovement[]>([]);
 
-  // Edit Item Dialog
+  // Edit Item
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [editData, setEditData] = useState<Partial<InventoryItem>>({});
 
   useEffect(() => {
     const seed: InventoryItem[] = [
-      { id: 1, sku: 'PUMP-XL-001', name_en: 'Pool Pump XL', name_fa: 'پمپ استخر XL', stock: 32, reserved: 3, reorder_level: 10, incoming: 20, location: 'A-01', category: 'pumps', unit_cost: 500000, unit_price: 1200000, warehouse: 'Main', batch: 'B001' },
-      { id: 2, sku: 'FLT-SAND-200', name_en: 'Sand Filter 200', name_fa: 'فیلتر شنی ۲۰۰', stock: 8, reserved: 1, reorder_level: 12, incoming: 0, location: 'B-04', category: 'filters', unit_cost: 300000, unit_price: 750000, warehouse: 'Main', batch: 'B002' },
-      { id: 3, sku: 'LED-LIGHT-RGB', name_en: 'LED Pool Light RGB', name_fa: 'چراغ LED استخر RGB', stock: 54, reserved: 5, reorder_level: 15, incoming: 40, location: 'C-02', category: 'lights', unit_cost: 200000, unit_price: 500000, warehouse: 'Main', batch: 'B003', expiry_date: '2025-12-31' },
-      { id: 4, sku: 'CHEM-CL-10', name_en: 'Chlorine 10kg', name_fa: 'کلر ۱۰ کیلو', stock: 5, reserved: 0, reorder_level: 20, incoming: 50, location: 'D-07', category: 'chemicals', unit_cost: 150000, unit_price: 350000, warehouse: 'Main', batch: 'B004', expiry_date: '2025-06-30' },
-      { id: 5, sku: 'PIPE-PVC-50', name_en: 'PVC Pipe 50mm', name_fa: 'لوله PVC ۵۰ میلی', stock: 120, reserved: 10, reorder_level: 30, incoming: 0, location: 'A-03', category: 'pipes', unit_cost: 50000, unit_price: 120000, warehouse: 'Secondary', batch: 'B005' },
+      { 
+        id: 1, sku: 'PUMP-XL-001', barcode: '8714235009211', name_en: 'Pool Pump XL', name_fa: 'پمپ استخر XL', 
+        stock: 32, reserved: 3, reorder_level: 10, incoming: 20, location: 'A-01', category: 'pumps', 
+        unit_cost: 500000, unit_price: 1200000, warehouse: 'Main', batch: 'B001',
+        abc_class: 'A', supplier_id: 1, lead_time_days: 14, defect_rate: 0.5, last_count_date: '2024-01-15'
+      },
+      { 
+        id: 2, sku: 'FLT-SAND-200', barcode: '8714235009228', name_en: 'Sand Filter 200', name_fa: 'فیلتر شنی ۲۰۰', 
+        stock: 8, reserved: 1, reorder_level: 12, incoming: 0, location: 'B-04', category: 'filters', 
+        unit_cost: 300000, unit_price: 750000, warehouse: 'Main', batch: 'B002',
+        abc_class: 'B', supplier_id: 2, lead_time_days: 21, defect_rate: 1.2, last_count_date: '2024-01-10'
+      },
+      { 
+        id: 3, sku: 'LED-LIGHT-RGB', barcode: '8714235009235', name_en: 'LED Pool Light RGB', name_fa: 'چراغ LED استخر RGB', 
+        stock: 54, reserved: 5, reorder_level: 15, incoming: 40, location: 'C-02', category: 'lights', 
+        unit_cost: 200000, unit_price: 500000, warehouse: 'Main', batch: 'B003', expiry_date: '2025-12-31',
+        abc_class: 'A', supplier_id: 1, lead_time_days: 7, defect_rate: 0.3, last_count_date: '2024-01-20'
+      },
+      { 
+        id: 4, sku: 'CHEM-CL-10', barcode: '8714235009242', name_en: 'Chlorine 10kg', name_fa: 'کلر ۱۰ کیلو', 
+        stock: 5, reserved: 0, reorder_level: 20, incoming: 50, location: 'D-07', category: 'chemicals', 
+        unit_cost: 150000, unit_price: 350000, warehouse: 'Main', batch: 'B004', expiry_date: '2025-06-30',
+        abc_class: 'B', supplier_id: 3, lead_time_days: 10, defect_rate: 0, last_count_date: '2024-01-05'
+      },
+      { 
+        id: 5, sku: 'PIPE-PVC-50', barcode: '8714235009259', name_en: 'PVC Pipe 50mm', name_fa: 'لوله PVC ۵۰ میلی', 
+        stock: 120, reserved: 10, reorder_level: 30, incoming: 0, location: 'A-03', category: 'pipes', 
+        unit_cost: 50000, unit_price: 120000, warehouse: 'Secondary', batch: 'B005',
+        abc_class: 'C', supplier_id: 2, lead_time_days: 28, defect_rate: 0.1, last_count_date: '2023-12-15'
+      },
     ];
     setItems(seed);
+
+    const seedSuppliers: Supplier[] = [
+      { id: 1, name_en: 'Global Pool Systems', name_fa: 'سیستم های استخر جهانی', email: 'sales@globalpools.com', phone: '+1-234-567-8900', lead_time_days: 14, rating: 4.8, total_orders: 45, on_time_delivery: 98 },
+      { id: 2, name_en: 'AquaTech Supplies', name_fa: 'تامین کنندگان آکوا تک', email: 'info@aquatech.com', phone: '+1-234-567-8901', lead_time_days: 21, rating: 4.5, total_orders: 32, on_time_delivery: 94 },
+      { id: 3, name_en: 'Chemical Solutions Inc', name_fa: 'شرکت راهکارهای شیمیایی', email: 'orders@chemsol.com', phone: '+1-234-567-8902', lead_time_days: 10, rating: 4.6, total_orders: 67, on_time_delivery: 96 },
+    ];
+    setSuppliers(seedSuppliers);
 
     const seedMovements: StockMovement[] = [
       { id: 'm1', sku: 'PUMP-XL-001', productId: 1, type: 'out', quantity: -2, note: 'Sales Order', reference: '#1001', createdAt: new Date(Date.now() - 86400000).toISOString(), createdBy: 'Admin' },
@@ -127,12 +220,30 @@ export default function AdminInventory() {
     ];
     setMovements(seedMovements);
 
+    const seedPO: PurchaseOrder[] = [
+      { id: 'po1', supplier_id: 1, po_number: 'PO-2024-001', items: [{ product_id: 3, quantity: 40, unit_cost: 200000 }], total_amount: 8000000, status: 'received', order_date: '2024-01-01', expected_delivery: '2024-01-08', created_at: '2024-01-01' },
+      { id: 'po2', supplier_id: 2, po_number: 'PO-2024-002', items: [{ product_id: 2, quantity: 25, unit_cost: 300000 }], total_amount: 7500000, status: 'pending', order_date: '2024-01-15', expected_delivery: '2024-02-05', created_at: '2024-01-15' },
+      { id: 'po3', supplier_id: 3, po_number: 'PO-2024-003', items: [{ product_id: 4, quantity: 50, unit_cost: 150000 }], total_amount: 7500000, status: 'pending', order_date: '2024-01-18', expected_delivery: '2024-01-28', created_at: '2024-01-18' },
+    ];
+    setPurchaseOrders(seedPO);
+
+    const seedQC: QualityControl[] = [
+      { id: 'qc1', product_id: 3, batch: 'B003', received_qty: 40, inspected_qty: 40, defect_qty: 1, defect_reason: 'Minor scratch', inspection_date: '2024-01-08', inspected_by: 'Ahmed', status: 'pass' },
+      { id: 'qc2', product_id: 1, batch: 'B001', received_qty: 35, inspected_qty: 35, defect_qty: 0, inspection_date: '2024-01-12', inspected_by: 'Fatima', status: 'pass' },
+    ];
+    setQualityControls(seedQC);
+
     const seedAlerts: StockAlert[] = [
       { id: 'a1', type: 'low_stock', severity: 'critical', itemId: 2, message_en: 'Stock below reorder level', message_fa: 'موجودی زیر حد سفارش', createdAt: new Date().toISOString(), resolved: false },
-      { id: 'a2', type: 'low_stock', severity: 'warning', itemId: 4, message_en: 'Stock approaching reorder level', message_fa: 'موجودی نزدیک به حد سفارش', createdAt: new Date().toISOString(), resolved: false },
-      { id: 'a3', type: 'expiry_soon', severity: 'warning', itemId: 4, message_en: 'Product expiry in 90 days', message_fa: 'انقضای محصول در ۹۰ روز', createdAt: new Date().toISOString(), resolved: false },
+      { id: 'a2', type: 'high_defect', severity: 'warning', itemId: 2, message_en: 'High defect rate detected', message_fa: 'میزان عیب بالا شناسایی شد', createdAt: new Date().toISOString(), resolved: false },
     ];
     setAlerts(seedAlerts);
+
+    const seedStockTakes: StockTake[] = [
+      { id: 'st1', name_fa: 'شمارش سالانه', name_en: 'Annual Count', scheduled_date: '2024-02-01', status: 'planned', counted_items: 0, total_items: 5, variance_amount: 0, created_at: new Date().toISOString() },
+      { id: 'st2', name_fa: 'شمارش سه ماهه Q1', name_en: 'Q1 Quarterly Count', scheduled_date: '2024-01-20', status: 'completed', counted_items: 5, total_items: 5, variance_amount: 2500, created_at: '2024-01-20' },
+    ];
+    setStockTakes(seedStockTakes);
   }, [language]);
 
   const filtered = useMemo(() => {
@@ -141,7 +252,8 @@ export default function AdminInventory() {
     return items.filter(i =>
       i.sku.toLowerCase().includes(q) ||
       i.name_en.toLowerCase().includes(q) ||
-      i.name_fa.toLowerCase().includes(q)
+      i.name_fa.toLowerCase().includes(q) ||
+      i.barcode?.includes(q)
     );
   }, [items, search]);
 
@@ -149,553 +261,272 @@ export default function AdminInventory() {
   const available = (it: InventoryItem) => Math.max(0, it.stock - it.reserved);
   const totalValue = (it: InventoryItem) => (it.unit_cost || 0) * it.stock;
 
-  const handleStockEntry = () => {
-    if (!entryItem || entryQty <= 0) return;
-    setItems(prev => prev.map(it => it.id === entryItem.id ? { ...it, stock: it.stock + entryQty, incoming: Math.max(0, it.incoming - entryQty) } : it));
-    setMovements(prev => [{
-      id: 'm' + (prev.length + 1),
-      sku: entryItem.sku,
-      productId: entryItem.id,
-      type: 'in',
-      quantity: entryQty,
-      unit_cost: entryUnitCost || entryItem.unit_cost,
-      note: entryNote || (language === 'fa' ? 'ورود محموله' : 'Stock entry'),
-      reference: entryReference,
-      createdAt: new Date().toISOString(),
-      createdBy: 'Admin',
-    }, ...prev]);
-    setEntryOpen(false);
-    setEntryItem(null);
-    setEntryQty(0);
-    setEntryUnitCost(0);
-    setEntryReference('');
-    setEntryNote('');
-    setEntryBatch('');
+  const abcAnalysis = useMemo(() => {
+    const itemsWithValue = items.map(it => ({ ...it, totalValue: totalValue(it) })).sort((a, b) => b.totalValue - a.totalValue);
+    const total = itemsWithValue.reduce((sum, it) => sum + it.totalValue, 0);
+    let cumulative = 0;
+    return itemsWithValue.map(it => {
+      cumulative += it.totalValue;
+      const percent = (cumulative / total) * 100;
+      let classif: 'A' | 'B' | 'C' = 'C';
+      if (percent <= 80) classif = 'A';
+      else if (percent <= 95) classif = 'B';
+      return { ...it, abc_class: classif };
+    });
+  }, [items]);
+
+  const calculateKPIs = () => {
+    const totalValue = items.reduce((sum, it) => sum + totalValue(it), 0);
+    const totalCost = items.reduce((sum, it) => sum + ((it.unit_cost || 0) * it.stock), 0);
+    const totalSold = movements.filter(m => m.type === 'out').reduce((sum, m) => sum + Math.abs(m.quantity), 0);
+    const avgStock = items.reduce((sum, it) => sum + it.stock, 0) / items.length;
+    const turnoverRatio = totalSold > 0 ? (totalSold / avgStock).toFixed(2) : '0';
+    const defectRate = items.reduce((sum, it) => sum + (it.defect_rate || 0), 0) / items.length;
+    
+    return { totalValue, totalCost, totalSold, avgStock, turnoverRatio, defectRate: defectRate.toFixed(2) };
   };
 
-  const handleStockExit = () => {
-    if (!exitItem || exitQty <= 0) return;
-    const exitQuantity = exitQty * (exitType === 'out' ? -1 : -1);
-    setItems(prev => prev.map(it => it.id === exitItem.id ? { ...it, stock: Math.max(0, it.stock + exitQuantity) } : it));
-    setMovements(prev => [{
-      id: 'm' + (prev.length + 1),
-      sku: exitItem.sku,
-      productId: exitItem.id,
-      type: exitType === 'out' ? 'out' : exitType === 'damage' ? 'damage' : 'adjustment',
-      quantity: exitQuantity,
-      note: exitNote || (exitType === 'damage' ? (language === 'fa' ? 'واحد معیوب' : 'Damaged unit') : language === 'fa' ? 'خروج موجودی' : 'Stock exit'),
-      reference: exitReference,
-      createdAt: new Date().toISOString(),
-      createdBy: 'Admin',
-    }, ...prev]);
-    setExitOpen(false);
-    setExitItem(null);
-    setExitQty(0);
-    setExitType('out');
-    setExitReference('');
-    setExitNote('');
+  const handleQC = () => {
+    if (!qcItem || qcInspectedQty <= 0) return;
+    const qcRecord: QualityControl = {
+      id: 'qc' + (qualityControls.length + 1),
+      product_id: qcItem.id,
+      batch: qcItem.batch || '',
+      received_qty: qcReceivedQty,
+      inspected_qty: qcInspectedQty,
+      defect_qty: qcDefectQty,
+      defect_reason: qcDefectReason,
+      inspection_date: new Date().toISOString(),
+      inspected_by: 'QC Team',
+      status: qcDefectQty === 0 ? 'pass' : qcDefectQty <= qcInspectedQty * 0.05 ? 'conditional' : 'fail',
+    };
+    setQualityControls([qcRecord, ...qualityControls]);
+    
+    if (qcDefectQty > 0) {
+      setItems(prev => prev.map(it => it.id === qcItem.id ? { ...it, defect_rate: ((it.defect_rate || 0) + (qcDefectQty / qcInspectedQty)) / 2 } : it));
+    }
+    
+    setQcOpen(false);
+    setQcItem(null);
+    setQcReceivedQty(0);
+    setQcInspectedQty(0);
+    setQcDefectQty(0);
+    setQcDefectReason('');
   };
 
-  const handleAdjustment = () => {
-    if (!adjustItem || !Number.isFinite(adjustQty) || adjustQty === 0) return;
-    setItems(prev => prev.map(it => it.id === adjustItem.id ? { ...it, stock: Math.max(0, it.stock + adjustQty) } : it));
-    setMovements(prev => [{
-      id: 'm' + (prev.length + 1),
-      sku: adjustItem.sku,
-      productId: adjustItem.id,
-      type: 'adjustment',
-      quantity: adjustQty,
-      note: adjustNote || (language === 'fa' ? 'اصلاح موجودی' : 'Stock adjustment'),
-      createdAt: new Date().toISOString(),
-      createdBy: 'Admin',
-    }, ...prev]);
-    setAdjustOpen(false);
-    setAdjustItem(null);
-    setAdjustQty(0);
-    setAdjustReason('');
-    setAdjustNote('');
+  const handleStockTake = () => {
+    if (!stockTakeName || !stockTakeDate) return;
+    const newStockTake: StockTake = {
+      id: 'st' + (stockTakes.length + 1),
+      name_fa: stockTakeName,
+      name_en: stockTakeName,
+      scheduled_date: stockTakeDate,
+      status: 'planned',
+      counted_items: 0,
+      total_items: items.length,
+      variance_amount: 0,
+      created_at: new Date().toISOString(),
+    };
+    setStockTakes([newStockTake, ...stockTakes]);
+    setStockTakeOpen(false);
+    setStockTakeName('');
+    setStockTakeDate('');
   };
 
-  const handleStockTransfer = () => {
-    if (!transferItem || transferQty <= 0 || !transferFromLoc || !transferToLoc) return;
-    setMovements(prev => [{
-      id: 'm' + (prev.length + 1),
-      sku: transferItem.sku,
-      productId: transferItem.id,
-      type: 'transfer',
-      quantity: transferQty,
-      note: transferNote,
-      from_location: transferFromLoc,
-      to_location: transferToLoc,
-      createdAt: new Date().toISOString(),
-      createdBy: 'Admin',
-    }, ...prev]);
-    setTransferOpen(false);
-    setTransferItem(null);
-    setTransferQty(0);
-    setTransferFromLoc('');
-    setTransferToLoc('');
-    setTransferNote('');
+  const generateBarcode = (sku: string) => {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(sku)}`;
   };
 
-  const handleEditItem = () => {
-    if (!editItem) return;
-    setItems(prev => prev.map(it => it.id === editItem.id ? { ...it, ...editData } : it));
-    setEditOpen(false);
-    setEditItem(null);
-    setEditData({});
-  };
-
-  const viewItemDetails = (item: InventoryItem) => {
-    setDetailsItem(item);
-    setItemMovements(movements.filter(m => m.productId === item.id));
-  };
-
-  const resolveAlert = (alertId: string) => {
-    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, resolved: true } : a));
-  };
-
-  const downloadInventoryReport = () => {
-    const data = items.map(item => ({
+  const exportABCAnalysis = () => {
+    const data = abcAnalysis.map(item => ({
       SKU: item.sku,
       Product: language === 'fa' ? item.name_fa : item.name_en,
+      'Total Value': formatCurrencyIRR(item.totalValue),
+      'ABC Class': item.abc_class,
       Stock: item.stock,
-      Reserved: item.reserved,
-      Available: available(item),
-      'Reorder Level': item.reorder_level,
-      'Unit Cost': item.unit_cost,
-      'Total Value': totalValue(item),
-      Location: item.location,
-      Category: item.category,
-      Warehouse: item.warehouse,
-      'Batch/Lot': item.batch,
-      'Expiry Date': item.expiry_date || '-',
+      'Unit Cost': formatCurrencyIRR(item.unit_cost || 0),
     }));
     const csv = [Object.keys(data[0]), ...data.map(row => Object.values(row))].map(row => row.join(',')).join('\n');
     const link = document.createElement('a');
     link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    link.download = `inventory-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `abc-analysis-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
-  const downloadMovementReport = () => {
-    const data = movements.map(m => ({
-      Date: new Date(m.createdAt).toLocaleString(language === 'fa' ? 'fa-IR' : 'en-US'),
-      SKU: m.sku,
-      Type: m.type,
-      Quantity: m.quantity,
-      Reference: m.reference || '-',
-      Note: m.note || '-',
-      'Unit Cost': m.unit_cost || '-',
-      'Created By': m.createdBy || '-',
-    }));
-    const csv = [Object.keys(data[0]), ...data.map(row => Object.values(row))].map(row => row.join(',')).join('\n');
-    const link = document.createElement('a');
-    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    link.download = `movements-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
-  const statsCards = [
-    {
-      title_en: 'Total Items',
-      title_fa: 'کل محصولات',
-      value: items.length,
-      icon: Package,
-      color: 'blue',
-    },
-    {
-      title_en: 'Total Value',
-      title_fa: 'کل ارزش موجودی',
-      value: formatCurrencyIRR(items.reduce((sum, it) => sum + totalValue(it), 0)),
-      icon: TrendingUp,
-      color: 'green',
-    },
-    {
-      title_en: 'Low Stock Items',
-      title_fa: 'موارد کمبود',
-      value: items.filter(lowStock).length,
-      icon: AlertTriangle,
-      color: 'red',
-    },
-    {
-      title_en: 'Incoming Stock',
-      title_fa: 'موجودی در راه',
-      value: items.reduce((sum, it) => sum + it.incoming, 0),
-      icon: TrendingDown,
-      color: 'purple',
-    },
-  ];
+  const kpis = calculateKPIs();
 
   return (
     <AdminLayout>
       <div className="space-y-6" dir={dir}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">{language === 'fa' ? 'مدیریت انبار جامع' : 'Comprehensive Inventory Management'}</h2>
-            <p className="text-gray-600">{language === 'fa' ? 'کنترل موجودی، ورود/خروج، انتقال، اصلاح و گزارش سازی' : 'Stock control, entry/exit, transfers, adjustments, and reporting'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={downloadInventoryReport}>
-              <Download className="w-4 h-4 mr-2" /> {language === 'fa' ? 'گزارش موجودی' : 'Inventory Report'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={downloadMovementReport}>
-              <Download className="w-4 h-4 mr-2" /> {language === 'fa' ? 'گزارش حرکات' : 'Movements Report'}
-            </Button>
+            <h2 className="text-3xl font-bold text-gray-900">{language === 'fa' ? 'مدیریت انبار حرفه ای' : 'Professional Inventory Management'}</h2>
+            <p className="text-gray-600">{language === 'fa' ? 'نظام جامع شامل تامین کننده، تجزیه ABC، کنترل کیفیت و تحلیل KPI' : 'Comprehensive system with suppliers, ABC analysis, QC, and KPI analytics'}</p>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {statsCards.map((stat, idx) => {
-            const Icon = stat.icon;
-            const bgColor = stat.color === 'blue' ? 'bg-blue-50' : stat.color === 'green' ? 'bg-green-50' : stat.color === 'red' ? 'bg-red-50' : 'bg-purple-50';
-            const iconColor = stat.color === 'blue' ? 'text-blue-600' : stat.color === 'green' ? 'text-green-600' : stat.color === 'red' ? 'text-red-600' : 'text-purple-600';
-            return (
-              <Card key={idx} className={bgColor}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">{language === 'fa' ? stat.title_fa : stat.title_en}</p>
-                      <p className="text-2xl font-bold mt-2">{stat.value}</p>
-                    </div>
-                    <Icon className={`w-8 h-8 ${iconColor}`} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {/* KPI Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <Card className="bg-blue-50">
+            <CardContent className="pt-6">
+              <p className="text-xs text-gray-600">{language === 'fa' ? 'ارزش کل' : 'Total Value'}</p>
+              <p className="text-lg font-bold mt-1">{formatCurrencyIRR(kpis.totalValue)}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-50">
+            <CardContent className="pt-6">
+              <p className="text-xs text-gray-600">{language === 'fa' ? 'نسبت گردش' : 'Turnover Ratio'}</p>
+              <p className="text-lg font-bold mt-1">{kpis.turnoverRatio}x</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-purple-50">
+            <CardContent className="pt-6">
+              <p className="text-xs text-gray-600">{language === 'fa' ? 'فروخته شده' : 'Sold Units'}</p>
+              <p className="text-lg font-bold mt-1">{kpis.totalSold}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-orange-50">
+            <CardContent className="pt-6">
+              <p className="text-xs text-gray-600">{language === 'fa' ? 'موجودی متوسط' : 'Avg Stock'}</p>
+              <p className="text-lg font-bold mt-1">{kpis.avgStock.toFixed(0)}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-50">
+            <CardContent className="pt-6">
+              <p className="text-xs text-gray-600">{language === 'fa' ? 'نرخ عیب' : 'Defect Rate'}</p>
+              <p className="text-lg font-bold mt-1">{kpis.defectRate}%</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-indigo-50">
+            <CardContent className="pt-6">
+              <p className="text-xs text-gray-600">{language === 'fa' ? 'کل اقلام' : 'Total Items'}</p>
+              <p className="text-lg font-bold mt-1">{items.length}</p>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">{language === 'fa' ? 'نمای کلی' : 'Overview'}</TabsTrigger>
-            <TabsTrigger value="movements">{language === 'fa' ? 'حرکات' : 'Movements'}</TabsTrigger>
-            <TabsTrigger value="alerts">{language === 'fa' ? 'هشدارها' : 'Alerts'}</TabsTrigger>
-            <TabsTrigger value="analytics">{language === 'fa' ? 'آمار' : 'Analytics'}</TabsTrigger>
-            <TabsTrigger value="settings">{language === 'fa' ? 'تنظیمات' : 'Settings'}</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 overflow-x-auto">
+            <TabsTrigger value="overview" className="text-xs">{language === 'fa' ? 'نمای کلی' : 'Overview'}</TabsTrigger>
+            <TabsTrigger value="abc" className="text-xs">{language === 'fa' ? 'تجزیه ABC' : 'ABC Analysis'}</TabsTrigger>
+            <TabsTrigger value="suppliers" className="text-xs">{language === 'fa' ? 'تامین' : 'Suppliers'}</TabsTrigger>
+            <TabsTrigger value="qc" className="text-xs">{language === 'fa' ? 'کنترل کیفیت' : 'QC'}</TabsTrigger>
+            <TabsTrigger value="stocktake" className="text-xs">{language === 'fa' ? 'شمارش' : 'Stock Take'}</TabsTrigger>
+            <TabsTrigger value="movements" className="text-xs">{language === 'fa' ? 'حرکات' : 'Movements'}</TabsTrigger>
+            <TabsTrigger value="alerts" className="text-xs">{language === 'fa' ? 'هشدارها' : 'Alerts'}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{language === 'fa' ? 'موجودی کالا' : 'Stock Levels'}</CardTitle>
-                <div className="flex items-center gap-3">
-                  <Input placeholder={language === 'fa' ? 'جستجو بر اساس نام یا کد' : 'Search by name or SKU'} value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
-                </div>
+                <CardTitle>{language === 'fa' ? 'موجودی کالا' : 'Stock Inventory'}</CardTitle>
+                <Input placeholder={language === 'fa' ? 'کد یا نام' : 'SKU or name'} value={search} onChange={e => setSearch(e.target.value)} className="w-48" />
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>SKU</TableHead>
-                        <TableHead>{language === 'fa' ? 'محصول' : 'Product'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'موجودی' : 'Stock'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'رزرو' : 'Reserved'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'قابل فروش' : 'Available'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'حد سفارش' : 'Reorder'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'ورودی' : 'Incoming'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'ارزش کل' : 'Total Value'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'مکان' : 'Location'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'عملیات' : 'Actions'}</TableHead>
+                        <TableHead className="text-xs">SKU</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'کد' : 'Barcode'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'محصول' : 'Product'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'موجودی' : 'Stock'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'قابل فروش' : 'Available'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'ارزش' : 'Value'}</TableHead>
+                        <TableHead className="text-xs">ABC</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'عیب' : 'Defect'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'عملیات' : 'Actions'}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map(it => (
-                        <TableRow key={it.id}>
-                          <TableCell className="font-mono text-xs">{it.sku}</TableCell>
-                          <TableCell className="font-medium">{language === 'fa' ? it.name_fa : it.name_en}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{it.stock}</span>
-                              {lowStock(it) && <Badge variant="destructive" className="text-xs"><AlertTriangle className="w-3 h-3 mr-1" /> {language === 'fa' ? 'کمبود' : 'Low'}</Badge>}
-                            </div>
-                          </TableCell>
-                          <TableCell>{it.reserved}</TableCell>
-                          <TableCell className="font-medium">{available(it)}</TableCell>
-                          <TableCell>{it.reorder_level}</TableCell>
-                          <TableCell><Badge variant="outline">{it.incoming}</Badge></TableCell>
-                          <TableCell>{formatCurrencyIRR(totalValue(it))}</TableCell>
-                          <TableCell className="text-xs text-gray-600">{it.location}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Dialog open={entryOpen && entryItem?.id === it.id} onOpenChange={(o) => { if (!o) { setEntryOpen(false); setEntryItem(null); setEntryQty(0); setEntryUnitCost(0); setEntryReference(''); setEntryNote(''); } else { setEntryItem(it); setEntryOpen(true); } }}>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-8 px-2" title={language === 'fa' ? 'ورود موجودی' : 'Stock Entry'}>
-                                    <Plus className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>{language === 'fa' ? 'ورود موجودی' : 'Stock Entry'}</DialogTitle>
-                                    <DialogDescription>
-                                      {it.sku} - {language === 'fa' ? it.name_fa : it.name_en}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
-                                      <Input type="number" value={entryQty} onChange={(e) => setEntryQty(parseInt(e.target.value || '0', 10))} />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'هزینه واحد' : 'Unit Cost'}</Label>
-                                      <Input type="number" value={entryUnitCost} onChange={(e) => setEntryUnitCost(parseFloat(e.target.value || '0'))} />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'شماره حواله/سفارش' : 'Reference (PO/Invoice)'}</Label>
-                                      <Input value={entryReference} onChange={(e) => setEntryReference(e.target.value)} placeholder="PO-2024-001" />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'دسته/لات' : 'Batch/Lot'}</Label>
-                                      <Input value={entryBatch} onChange={(e) => setEntryBatch(e.target.value)} placeholder="Batch001" />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'یادداشت' : 'Note'}</Label>
-                                      <Textarea value={entryNote} onChange={(e) => setEntryNote(e.target.value)} placeholder={language === 'fa' ? 'توضیحات اضافی' : 'Additional notes'} />
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                      <Button variant="outline" onClick={() => { setEntryOpen(false); setEntryItem(null); setEntryQty(0); setEntryUnitCost(0); setEntryReference(''); setEntryNote(''); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                                      <Button onClick={handleStockEntry}>{language === 'fa' ? 'ثبت ورود' : 'Record Entry'}</Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-
-                              <Dialog open={exitOpen && exitItem?.id === it.id} onOpenChange={(o) => { if (!o) { setExitOpen(false); setExitItem(null); setExitQty(0); setExitType('out'); setExitReference(''); setExitNote(''); } else { setExitItem(it); setExitOpen(true); } }}>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-8 px-2" title={language === 'fa' ? 'خروج موجودی' : 'Stock Exit'}>
-                                    <Minus className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>{language === 'fa' ? 'خروج موجودی' : 'Stock Exit'}</DialogTitle>
-                                    <DialogDescription>
-                                      {it.sku} - {language === 'fa' ? it.name_fa : it.name_en}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>{language === 'fa' ? 'نوع خروج' : 'Exit Type'}</Label>
-                                      <Select value={exitType} onValueChange={(v) => setExitType(v as 'out' | 'damage' | 'loss')}>
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="out">{language === 'fa' ? 'فروش' : 'Sales'}</SelectItem>
-                                          <SelectItem value="damage">{language === 'fa' ? 'معیوب' : 'Damage'}</SelectItem>
-                                          <SelectItem value="loss">{language === 'fa' ? 'گم شده' : 'Loss'}</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
-                                      <Input type="number" value={exitQty} onChange={(e) => setExitQty(parseInt(e.target.value || '0', 10))} max={available(it)} />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'شماره سفارش/مرجع' : 'Reference (Order/Ref)'}</Label>
-                                      <Input value={exitReference} onChange={(e) => setExitReference(e.target.value)} placeholder="#ORDER-001" />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'یادداشت' : 'Note'}</Label>
-                                      <Textarea value={exitNote} onChange={(e) => setExitNote(e.target.value)} placeholder={language === 'fa' ? 'دلیل خروج' : 'Reason for exit'} />
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                      <Button variant="outline" onClick={() => { setExitOpen(false); setExitItem(null); setExitQty(0); setExitType('out'); setExitReference(''); setExitNote(''); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                                      <Button onClick={handleStockExit}>{language === 'fa' ? 'ثبت خروج' : 'Record Exit'}</Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-
-                              <Dialog open={adjustOpen && adjustItem?.id === it.id} onOpenChange={(o) => { if (!o) { setAdjustOpen(false); setAdjustItem(null); setAdjustQty(0); setAdjustReason(''); setAdjustNote(''); } else { setAdjustItem(it); setAdjustOpen(true); } }}>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-8 px-2" title={language === 'fa' ? 'اصلاح موجودی' : 'Adjust'}>
-                                    <RefreshCcw className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>{language === 'fa' ? 'اصلاح موجودی' : 'Adjust Stock'}</DialogTitle>
-                                    <DialogDescription>
-                                      {it.sku} - {language === 'fa' ? it.name_fa : it.name_en}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>{language === 'fa' ? 'تعداد تغییر' : 'Quantity Change'}</Label>
-                                      <Input type="number" value={adjustQty} onChange={(e) => setAdjustQty(parseInt(e.target.value || '0', 10))} />
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'دلیل اصلاح' : 'Reason'}</Label>
-                                      <Select value={adjustReason} onValueChange={setAdjustReason}>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder={language === 'fa' ? 'انتخاب دلیل' : 'Select reason'} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="reconciliation">{language === 'fa' ? 'تطابق موجودی' : 'Reconciliation'}</SelectItem>
-                                          <SelectItem value="damage">{language === 'fa' ? 'معیوب' : 'Damage'}</SelectItem>
-                                          <SelectItem value="loss">{language === 'fa' ? 'گم شده' : 'Loss'}</SelectItem>
-                                          <SelectItem value="correction">{language === 'fa' ? 'اصلاح خطا' : 'Correction'}</SelectItem>
-                                          <SelectItem value="other">{language === 'fa' ? 'سایر' : 'Other'}</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    <div>
-                                      <Label>{language === 'fa' ? 'یادداشت' : 'Note'}</Label>
-                                      <Textarea value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} placeholder={language === 'fa' ? 'توضیحات بیشتری' : 'More details'} />
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                      <Button variant="outline" onClick={() => { setAdjustOpen(false); setAdjustItem(null); setAdjustQty(0); setAdjustReason(''); setAdjustNote(''); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                                      <Button onClick={handleAdjustment}>{language === 'fa' ? 'اعمال اصلاح' : 'Apply Adjustment'}</Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-
-                              <Dialog open={detailsItem?.id === it.id} onOpenChange={(o) => { if (!o) setDetailsItem(null); else viewItemDetails(it); }}>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-8 px-2" title={language === 'fa' ? 'نمایش جزئیات' : 'Details'}>
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>{language === 'fa' ? 'جزئیات محصول' : 'Product Details'}</DialogTitle>
-                                  </DialogHeader>
-                                  {detailsItem && (
-                                    <div className="space-y-6">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'نام' : 'Name'}</p>
-                                          <p className="font-semibold">{language === 'fa' ? detailsItem.name_fa : detailsItem.name_en}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">SKU</p>
-                                          <p className="font-semibold">{detailsItem.sku}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'موجودی' : 'Stock'}</p>
-                                          <p className="font-semibold">{detailsItem.stock}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'قابل فروش' : 'Available'}</p>
-                                          <p className="font-semibold">{available(detailsItem)}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'دسته' : 'Category'}</p>
-                                          <p className="font-semibold">{detailsItem.category}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'انبار' : 'Warehouse'}</p>
-                                          <p className="font-semibold">{detailsItem.warehouse}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'مکان' : 'Location'}</p>
-                                          <p className="font-semibold">{detailsItem.location}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'دسته/لات' : 'Batch'}</p>
-                                          <p className="font-semibold">{detailsItem.batch || '-'}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'تاریخ انقضا' : 'Expiry Date'}</p>
-                                          <p className="font-semibold">{detailsItem.expiry_date || '-'}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'قیمت واحد' : 'Unit Price'}</p>
-                                          <p className="font-semibold">{formatCurrencyIRR(detailsItem.unit_price || 0)}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'هزینه واحد' : 'Unit Cost'}</p>
-                                          <p className="font-semibold">{formatCurrencyIRR(detailsItem.unit_cost || 0)}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-gray-600">{language === 'fa' ? 'ارزش کل' : 'Total Value'}</p>
-                                          <p className="font-semibold">{formatCurrencyIRR(totalValue(detailsItem))}</p>
-                                        </div>
-                                      </div>
-                                      <Separator />
-                                      <div>
-                                        <h3 className="font-semibold mb-3">{language === 'fa' ? 'تاریخچه حرکات' : 'Movement History'}</h3>
-                                        <div className="max-h-64 overflow-y-auto">
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead className="text-xs">{language === 'fa' ? 'تاریخ' : 'Date'}</TableHead>
-                                                <TableHead className="text-xs">{language === 'fa' ? 'نوع' : 'Type'}</TableHead>
-                                                <TableHead className="text-xs">{language === 'fa' ? 'تعداد' : 'Qty'}</TableHead>
-                                                <TableHead className="text-xs">{language === 'fa' ? 'یادداشت' : 'Note'}</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              {itemMovements.map(m => (
-                                                <TableRow key={m.id}>
-                                                  <TableCell className="text-xs">{new Date(m.createdAt).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
-                                                  <TableCell className="text-xs"><Badge variant="outline">{m.type}</Badge></TableCell>
-                                                  <TableCell className={`text-xs font-semibold ${m.quantity < 0 ? 'text-red-600' : 'text-green-700'}`}>{m.quantity}</TableCell>
-                                                  <TableCell className="text-xs">{m.note || '-'}</TableCell>
-                                                </TableRow>
-                                              ))}
-                                            </TableBody>
-                                          </Table>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="movements">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> {language === 'fa' ? 'سوابق حرکات موجودی' : 'Stock Movement History'}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{language === 'fa' ? 'تاریخ' : 'Date'}</TableHead>
-                        <TableHead>SKU</TableHead>
-                        <TableHead>{language === 'fa' ? 'محصول' : 'Product'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'نوع' : 'Type'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'تعداد' : 'Quantity'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'هزینه واحد' : 'Unit Cost'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'مرجع' : 'Reference'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'یادداشت' : 'Note'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'کاربر' : 'User'}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {movements.map(m => {
-                        const item = items.find(it => it.id === m.productId);
+                      {filtered.map(it => {
+                        const abcItem = abcAnalysis.find(a => a.id === it.id);
                         return (
-                          <TableRow key={m.id}>
-                            <TableCell>{new Date(m.createdAt).toLocaleString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
-                            <TableCell className="font-mono text-xs">{m.sku}</TableCell>
-                            <TableCell>{language === 'fa' ? item?.name_fa : item?.name_en}</TableCell>
+                          <TableRow key={it.id}>
+                            <TableCell className="text-xs font-mono">{it.sku}</TableCell>
                             <TableCell>
-                              <Badge variant={m.type === 'in' ? 'default' : 'secondary'}>
-                                {m.type === 'in' ? (language === 'fa' ? 'ورود' : 'In') : m.type === 'out' ? (language === 'fa' ? 'خروج' : 'Out') : m.type === 'damage' ? (language === 'fa' ? 'معیوب' : 'Damage') : m.type === 'transfer' ? (language === 'fa' ? 'انتقال' : 'Transfer') : (language === 'fa' ? 'اصلاح' : 'Adjust')}
-                              </Badge>
+                              {it.barcode ? (
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-6 px-2">
+                                      <QrCode className="w-3 h-3" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-xs">
+                                    <DialogHeader>
+                                      <DialogTitle className="text-sm">{it.sku}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex justify-center p-4">
+                                      <img src={generateBarcode(it.sku)} alt="barcode" className="w-40 h-40" />
+                                    </div>
+                                    <p className="text-xs text-center text-gray-600">{it.barcode}</p>
+                                  </DialogContent>
+                                </Dialog>
+                              ) : <span className="text-xs text-gray-400">-</span>}
                             </TableCell>
-                            <TableCell className={m.quantity < 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold'}>{m.quantity > 0 ? '+' : ''}{m.quantity}</TableCell>
-                            <TableCell>{m.unit_cost ? formatCurrencyIRR(m.unit_cost) : '-'}</TableCell>
-                            <TableCell className="text-xs text-gray-600">{m.reference || '-'}</TableCell>
-                            <TableCell className="text-sm max-w-xs">{m.note || '-'}</TableCell>
-                            <TableCell className="text-xs text-gray-600">{m.createdBy || '-'}</TableCell>
+                            <TableCell className="text-xs font-medium">{language === 'fa' ? it.name_fa : it.name_en}</TableCell>
+                            <TableCell className="text-xs">{it.stock} {lowStock(it) && <Badge className="ml-1 text-xs" variant="destructive">Low</Badge>}</TableCell>
+                            <TableCell className="text-xs font-semibold">{available(it)}</TableCell>
+                            <TableCell className="text-xs">{formatCurrencyIRR(totalValue(it))}</TableCell>
+                            <TableCell><Badge className={abcItem?.abc_class === 'A' ? 'bg-red-500' : abcItem?.abc_class === 'B' ? 'bg-yellow-500' : 'bg-green-500'} className="text-xs">{abcItem?.abc_class}</Badge></TableCell>
+                            <TableCell className="text-xs">{(it.defect_rate || 0).toFixed(1)}%</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Dialog open={entryOpen && entryItem?.id === it.id} onOpenChange={(o) => { if (o) { setEntryItem(it); setEntryOpen(true); } else { setEntryOpen(false); setEntryItem(null); } }}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-6 px-2"><Plus className="w-3 h-3" /></Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-sm">
+                                    <DialogHeader>
+                                      <DialogTitle className="text-sm">{language === 'fa' ? 'ورود موجودی' : 'Stock Entry'}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-3">
+                                      <div>
+                                        <Label className="text-xs">{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
+                                        <Input type="number" value={entryQty} onChange={(e) => setEntryQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => { setEntryOpen(false); setEntryItem(null); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
+                                        <Button size="sm" onClick={() => { setItems(prev => prev.map(x => x.id === it.id ? { ...x, stock: x.stock + entryQty } : x)); setEntryOpen(false); setEntryItem(null); setEntryQty(0); }}>{language === 'fa' ? 'ثبت' : 'Save'}</Button>
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+
+                                <Dialog open={exitOpen && exitItem?.id === it.id} onOpenChange={(o) => { if (o) { setExitItem(it); setExitOpen(true); } else { setExitOpen(false); setExitItem(null); } }}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-6 px-2"><Minus className="w-3 h-3" /></Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-sm">
+                                    <DialogHeader>
+                                      <DialogTitle className="text-sm">{language === 'fa' ? 'خروج موجودی' : 'Stock Exit'}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-3">
+                                      <div>
+                                        <Label className="text-xs">{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
+                                        <Input type="number" value={exitQty} onChange={(e) => setExitQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => { setExitOpen(false); setExitItem(null); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
+                                        <Button size="sm" onClick={() => { setItems(prev => prev.map(x => x.id === it.id ? { ...x, stock: Math.max(0, x.stock - exitQty) } : x)); setExitOpen(false); setExitItem(null); setExitQty(0); }}>{language === 'fa' ? 'ثبت' : 'Save'}</Button>
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+
+                                <Dialog open={detailsItem?.id === it.id} onOpenChange={(o) => { if (!o) setDetailsItem(null); else { setDetailsItem(it); setItemMovements(movements.filter(m => m.productId === it.id)); } }}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-6 px-2"><Eye className="w-3 h-3" /></Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-2xl">
+                                    <DialogHeader>
+                                      <DialogTitle className="text-sm">{language === 'fa' ? 'جزئیات' : 'Details'}</DialogTitle>
+                                    </DialogHeader>
+                                    {detailsItem && <div className="grid grid-cols-2 gap-3 text-xs"><div><p className="font-semibold">{language === 'fa' ? 'نام' : 'Name'}</p><p>{language === 'fa' ? detailsItem.name_fa : detailsItem.name_en}</p></div><div><p className="font-semibold">SKU</p><p>{detailsItem.sku}</p></div><div><p className="font-semibold">{language === 'fa' ? 'موجودی' : 'Stock'}</p><p>{detailsItem.stock}</p></div><div><p className="font-semibold">{language === 'fa' ? 'ارزش' : 'Value'}</p><p>{formatCurrencyIRR(totalValue(detailsItem))}</p></div></div>}
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -706,157 +537,276 @@ export default function AdminInventory() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="alerts">
+          <TabsContent value="abc">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {language === 'fa' ? 'هشدار ها و اعلانات' : 'Alerts & Notifications'}</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><PieChart className="w-4 h-4" /> {language === 'fa' ? 'تجزیه ABC' : 'ABC Inventory Analysis'}</CardTitle>
+                <Button size="sm" variant="outline" onClick={exportABCAnalysis}><Download className="w-3 h-3 mr-1" /> {language === 'fa' ? 'صادرات' : 'Export'}</Button>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {alerts.filter(a => !a.resolved).length === 0 ? (
-                  <div className="text-center py-8 text-gray-600">{language === 'fa' ? 'هیچ هشداری وجود ندارد' : 'No active alerts'}</div>
-                ) : (
-                  <div className="space-y-3">
-                    {alerts.filter(a => !a.resolved).map(alert => {
-                      const item = items.find(it => it.id === alert.itemId);
-                      const isWarning = alert.severity === 'warning';
-                      return (
-                        <div key={alert.id} className={`flex items-center justify-between p-4 rounded-lg border ${isWarning ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
-                          <div className="flex items-center gap-3">
-                            <AlertTriangle className={`w-5 h-5 ${isWarning ? 'text-yellow-700' : 'text-red-700'}`} />
-                            <div>
-                              <p className="font-medium">{item ? (language === 'fa' ? item.name_fa : item.name_en) : 'Unknown'} - {item?.sku}</p>
-                              <p className="text-sm text-gray-600">{language === 'fa' ? alert.message_fa : alert.message_en}</p>
-                            </div>
-                          </div>
-                          <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>{language === 'fa' ? 'حل شد' : 'Resolve'}</Button>
-                        </div>
-                      );
-                    })}
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 border rounded-lg bg-red-50">
+                    <p className="text-sm font-semibold text-red-700">{language === 'fa' ? 'کلاس A' : 'Class A'}</p>
+                    <p className="text-xs text-gray-600 mt-1">{language === 'fa' ? '80% ارزش' : '80% of value'}</p>
+                    <p className="text-lg font-bold mt-2">{abcAnalysis.filter(a => a.abc_class === 'A').length} {language === 'fa' ? 'مورد' : 'items'}</p>
                   </div>
-                )}
+                  <div className="p-4 border rounded-lg bg-yellow-50">
+                    <p className="text-sm font-semibold text-yellow-700">{language === 'fa' ? 'کلاس B' : 'Class B'}</p>
+                    <p className="text-xs text-gray-600 mt-1">{language === 'fa' ? '15% ارزش' : '15% of value'}</p>
+                    <p className="text-lg font-bold mt-2">{abcAnalysis.filter(a => a.abc_class === 'B').length} {language === 'fa' ? 'مورد' : 'items'}</p>
+                  </div>
+                  <div className="p-4 border rounded-lg bg-green-50">
+                    <p className="text-sm font-semibold text-green-700">{language === 'fa' ? 'کلاس C' : 'Class C'}</p>
+                    <p className="text-xs text-gray-600 mt-1">{language === 'fa' ? '5% ارزش' : '5% of value'}</p>
+                    <p className="text-lg font-bold mt-2">{abcAnalysis.filter(a => a.abc_class === 'C').length} {language === 'fa' ? 'مورد' : 'items'}</p>
+                  </div>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">SKU</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'محصول' : 'Product'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'موجودی' : 'Stock'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'ارزش کل' : 'Total Value'}</TableHead>
+                      <TableHead className="text-xs">%</TableHead>
+                      <TableHead className="text-xs">ABC</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {abcAnalysis.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="text-xs">{item.sku}</TableCell>
+                        <TableCell className="text-xs">{language === 'fa' ? item.name_fa : item.name_en}</TableCell>
+                        <TableCell className="text-xs">{item.stock}</TableCell>
+                        <TableCell className="text-xs">{formatCurrencyIRR(item.totalValue)}</TableCell>
+                        <TableCell className="text-xs">{((item.totalValue / abcAnalysis.reduce((s, a) => s + a.totalValue, 0)) * 100).toFixed(1)}%</TableCell>
+                        <TableCell><Badge className={item.abc_class === 'A' ? 'bg-red-500' : item.abc_class === 'B' ? 'bg-yellow-500' : 'bg-green-500'} className="text-xs">{item.abc_class}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="analytics">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> {language === 'fa' ? 'آمار موجودی' : 'Inventory Analytics'}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-gray-600">{language === 'fa' ? 'میانگین سطح موجودی' : 'Average Stock Level'}</p>
-                      <p className="text-2xl font-bold mt-2">{(items.reduce((sum, it) => sum + it.stock, 0) / items.length).toFixed(1)}</p>
-                    </div>
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <p className="text-sm text-gray-600">{language === 'fa' ? 'تعداد تحرک دار' : 'Moving Items'}</p>
-                      <p className="text-2xl font-bold mt-2">{items.filter(it => movements.some(m => m.productId === it.id)).length}</p>
-                    </div>
-                    <div className="p-4 bg-purple-50 rounded-lg">
-                      <p className="text-sm text-gray-600">{language === 'fa' ? 'کل حرکات' : 'Total Movements'}</p>
-                      <p className="text-2xl font-bold mt-2">{movements.length}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <TabsContent value="suppliers">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4" /> {language === 'fa' ? 'تامین کنندگان' : 'Suppliers'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">{language === 'fa' ? 'نام' : 'Name'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'ایمیل' : 'Email'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'موقعیت' : 'Lead Time'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'امتیاز' : 'Rating'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'سفارشات' : 'Orders'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'به موقع' : 'On-Time'}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {suppliers.map(sup => (
+                      <TableRow key={sup.id}>
+                        <TableCell className="text-xs font-medium">{language === 'fa' ? sup.name_fa : sup.name_en}</TableCell>
+                        <TableCell className="text-xs">{sup.email}</TableCell>
+                        <TableCell className="text-xs">{sup.lead_time_days} {language === 'fa' ? 'روز' : 'days'}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{sup.rating} ⭐</Badge></TableCell>
+                        <TableCell className="text-xs">{sup.total_orders}</TableCell>
+                        <TableCell className="text-xs font-semibold text-green-700">{sup.on_time_delivery}%</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>{language === 'fa' ? 'محصولات پرتحرک' : 'Top Moving Products'}</CardTitle>
-                </CardHeader>
-                <CardContent>
+          <TabsContent value="qc">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> {language === 'fa' ? 'کنترل کیفیت' : 'Quality Control'}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex gap-2">
+                  {filtered.map(it => (
+                    <Dialog key={it.id} open={qcOpen && qcItem?.id === it.id} onOpenChange={(o) => { if (o) { setQcItem(it); setQcOpen(true); } else { setQcOpen(false); setQcItem(null); } }}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline">{it.sku}</Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle className="text-sm">{language === 'fa' ? 'فرم کنترل کیفیت' : 'QC Form'}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-xs">{language === 'fa' ? 'تعداد دریافتی' : 'Received Qty'}</Label>
+                            <Input type="number" value={qcReceivedQty} onChange={(e) => setQcReceivedQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">{language === 'fa' ? 'تعداد بازرسی شده' : 'Inspected Qty'}</Label>
+                            <Input type="number" value={qcInspectedQty} onChange={(e) => setQcInspectedQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">{language === 'fa' ? 'عیب یافت' : 'Defects Found'}</Label>
+                            <Input type="number" value={qcDefectQty} onChange={(e) => setQcDefectQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">{language === 'fa' ? 'دلیل عیب' : 'Defect Reason'}</Label>
+                            <Textarea value={qcDefectReason} onChange={(e) => setQcDefectReason(e.target.value)} className="text-xs" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => { setQcOpen(false); setQcItem(null); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
+                            <Button size="sm" onClick={handleQC}>{language === 'fa' ? 'ثبت QC' : 'Record QC'}</Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ))}
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">SKU</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'دسته' : 'Batch'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'بازرسی شده' : 'Inspected'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'عیب' : 'Defects'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'تاریخ' : 'Date'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'وضعیت' : 'Status'}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {qualityControls.map(qc => {
+                      const item = items.find(it => it.id === qc.product_id);
+                      return (
+                        <TableRow key={qc.id}>
+                          <TableCell className="text-xs">{item?.sku}</TableCell>
+                          <TableCell className="text-xs">{qc.batch}</TableCell>
+                          <TableCell className="text-xs">{qc.inspected_qty}</TableCell>
+                          <TableCell className="text-xs font-semibold">{qc.defect_qty}</TableCell>
+                          <TableCell className="text-xs">{new Date(qc.inspection_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
+                          <TableCell><Badge className={qc.status === 'pass' ? 'bg-green-500' : qc.status === 'conditional' ? 'bg-yellow-500' : 'bg-red-500'} className="text-xs">{qc.status}</Badge></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="stocktake">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><RotateCcw className="w-4 h-4" /> {language === 'fa' ? 'شمارش موجودی' : 'Stock Take'}</CardTitle>
+                <Dialog open={stockTakeOpen} onOpenChange={setStockTakeOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="default"><Plus className="w-3 h-3 mr-1" /> {language === 'fa' ? 'جدید' : 'New'}</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">{language === 'fa' ? 'شمارش جدید' : 'New Stock Take'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs">{language === 'fa' ? 'نام شمارش' : 'Name'}</Label>
+                        <Input value={stockTakeName} onChange={(e) => setStockTakeName(e.target.value)} placeholder={language === 'fa' ? 'مثلا: شمارش سالانه' : 'e.g. Annual Count'} className="text-xs" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">{language === 'fa' ? 'تاریخ' : 'Date'}</Label>
+                        <Input type="date" value={stockTakeDate} onChange={(e) => setStockTakeDate(e.target.value)} className="text-xs" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => { setStockTakeOpen(false); setStockTakeName(''); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
+                        <Button size="sm" onClick={handleStockTake}>{language === 'fa' ? 'شروع' : 'Start'}</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">{language === 'fa' ? 'نام' : 'Name'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'تاریخ برنامه ریزی' : 'Scheduled Date'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'وضعیت' : 'Status'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'شمارش شده' : 'Counted'}</TableHead>
+                      <TableHead className="text-xs">{language === 'fa' ? 'نتیجه' : 'Variance'}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stockTakes.map(st => (
+                      <TableRow key={st.id}>
+                        <TableCell className="text-xs font-medium">{language === 'fa' ? st.name_fa : st.name_en}</TableCell>
+                        <TableCell className="text-xs">{new Date(st.scheduled_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
+                        <TableCell><Badge className={st.status === 'completed' ? 'bg-green-500' : st.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-500'} className="text-xs">{st.status}</Badge></TableCell>
+                        <TableCell className="text-xs">{st.counted_items}/{st.total_items}</TableCell>
+                        <TableCell className="text-xs font-semibold">{formatCurrencyIRR(st.variance_amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="movements">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">{language === 'fa' ? 'حرکات موجودی' : 'Stock Movements'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{language === 'fa' ? 'محصول' : 'Product'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'تعداد حرکات' : 'Movements'}</TableHead>
-                        <TableHead>{language === 'fa' ? 'کل تغییر' : 'Total Change'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'تاریخ' : 'Date'}</TableHead>
+                        <TableHead className="text-xs">SKU</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'نوع' : 'Type'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'تعداد' : 'Qty'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'یادداشت' : 'Note'}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {items
-                        .map(it => ({
-                          item: it,
-                          moveCount: movements.filter(m => m.productId === it.id).length,
-                          totalChange: movements.filter(m => m.productId === it.id).reduce((sum, m) => sum + m.quantity, 0),
-                        }))
-                        .sort((a, b) => b.moveCount - a.moveCount)
-                        .slice(0, 5)
-                        .map((row, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium">{language === 'fa' ? row.item.name_fa : row.item.name_en}</TableCell>
-                            <TableCell>{row.moveCount}</TableCell>
-                            <TableCell className={row.totalChange < 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold'}>{row.totalChange}</TableCell>
-                          </TableRow>
-                        ))}
+                      {movements.slice(0, 10).map(m => (
+                        <TableRow key={m.id}>
+                          <TableCell className="text-xs">{new Date(m.createdAt).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
+                          <TableCell className="text-xs">{m.sku}</TableCell>
+                          <TableCell className="text-xs"><Badge variant="outline" className="text-xs">{m.type}</Badge></TableCell>
+                          <TableCell className={`text-xs font-semibold ${m.quantity < 0 ? 'text-red-600' : 'text-green-700'}`}>{m.quantity}</TableCell>
+                          <TableCell className="text-xs max-w-xs truncate">{m.note || '-'}</TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="alerts">
             <Card>
               <CardHeader>
-                <CardTitle>{language === 'fa' ? 'تنظیمات انبار' : 'Inventory Settings'}</CardTitle>
+                <CardTitle className="text-sm">{language === 'fa' ? 'هشدار ها' : 'Alerts'}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-4">{language === 'fa' ? 'مدیریت محصولات' : 'Product Management'}</h3>
-                  <div className="space-y-3">
-                    {items.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+              <CardContent>
+                {alerts.filter(a => !a.resolved).length === 0 ? (
+                  <p className="text-xs text-gray-600 text-center py-4">{language === 'fa' ? 'بدون هشدار فعال' : 'No active alerts'}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {alerts.filter(a => !a.resolved).map(alert => (
+                      <div key={alert.id} className="flex items-center justify-between p-3 border rounded text-xs bg-yellow-50">
                         <div>
-                          <p className="font-medium">{language === 'fa' ? item.name_fa : item.name_en} ({item.sku})</p>
-                          <p className="text-xs text-gray-600">{language === 'fa' ? `انبار: ${item.warehouse}` : `Warehouse: ${item.warehouse}`}</p>
+                          <p className="font-semibold">{alert.type}</p>
+                          <p className="text-gray-600">{language === 'fa' ? alert.message_fa : alert.message_en}</p>
                         </div>
-                        <Dialog open={editOpen && editItem?.id === item.id} onOpenChange={(o) => { if (!o) { setEditOpen(false); setEditItem(null); setEditData({}); } else { setEditItem(item); setEditData({ ...item }); setEditOpen(true); } }}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost"><Edit2 className="w-4 h-4" /></Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>{language === 'fa' ? 'ویرایش محصول' : 'Edit Product'}</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label>{language === 'fa' ? 'حد سفارش' : 'Reorder Level'}</Label>
-                                <Input type="number" value={editData.reorder_level || 0} onChange={(e) => setEditData({ ...editData, reorder_level: parseInt(e.target.value || '0', 10) })} />
-                              </div>
-                              <div>
-                                <Label>{language === 'fa' ? 'مکان ذخیره' : 'Location'}</Label>
-                                <Input value={editData.location || ''} onChange={(e) => setEditData({ ...editData, location: e.target.value })} />
-                              </div>
-                              <div>
-                                <Label>{language === 'fa' ? 'انبار' : 'Warehouse'}</Label>
-                                <Input value={editData.warehouse || ''} onChange={(e) => setEditData({ ...editData, warehouse: e.target.value })} />
-                              </div>
-                              <div>
-                                <Label>{language === 'fa' ? 'هزینه واحد' : 'Unit Cost'}</Label>
-                                <Input type="number" value={editData.unit_cost || 0} onChange={(e) => setEditData({ ...editData, unit_cost: parseFloat(e.target.value || '0') })} />
-                              </div>
-                              <div>
-                                <Label>{language === 'fa' ? 'قیمت فروش' : 'Unit Price'}</Label>
-                                <Input type="number" value={editData.unit_price || 0} onChange={(e) => setEditData({ ...editData, unit_price: parseFloat(e.target.value || '0') })} />
-                              </div>
-                              <div>
-                                <Label>{language === 'fa' ? 'تاریخ انقضا' : 'Expiry Date'}</Label>
-                                <Input type="date" value={editData.expiry_date || ''} onChange={(e) => setEditData({ ...editData, expiry_date: e.target.value })} />
-                              </div>
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => { setEditOpen(false); setEditItem(null); setEditData({}); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                                <Button onClick={handleEditItem}>{language === 'fa' ? 'ذخیره' : 'Save'}</Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <Button size="sm" variant="ghost" onClick={() => resolveAlert(alert.id)}>✓</Button>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -864,4 +814,8 @@ export default function AdminInventory() {
       </div>
     </AdminLayout>
   );
+
+  function resolveAlert(alertId: string) {
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, resolved: true } : a));
+  }
 }
