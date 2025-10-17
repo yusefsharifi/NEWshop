@@ -81,6 +81,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: Settings
     },
     {
+      name_en: 'Accounting',
+      name_fa: 'حسابداری',
+      href: '/admin/accounting',
+      icon: BarChart3
+    },
+    {
+      name_en: 'Journal Entries',
+      name_fa: 'دفاتر روزنامه',
+      href: '/admin/journal-entries',
+      icon: Settings
+    },
+    {
+      name_en: 'Financial Reports',
+      name_fa: 'گزارشات مالی',
+      href: '/admin/financial-reports',
+      icon: BarChart3
+    },
+    {
       name_en: 'Settings',
       name_fa: 'تنظیمات',
       href: '/admin/settings',
