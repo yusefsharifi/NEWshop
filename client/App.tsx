@@ -62,275 +62,386 @@ const App = () => (
         <NotificationProvider>
           <CartProvider>
             <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-            <div className="min-h-screen flex flex-col">
-              <HeaderNew />
-              <CartDrawer />
-              <WhatsAppWidget />
-              <LiveChat />
-              <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Index />} />
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <div className="min-h-screen flex flex-col">
+                  <HeaderNew />
+                  <CartDrawer />
+                  <WhatsAppWidget />
+                  <LiveChat />
+                  <main className="flex-1">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
 
-              {/* Product Routes */}
-              <Route path="/products" element={<SearchSimple />} />
-              <Route path="/search" element={<SearchSimple />} />
+                      {/* Product Routes */}
+                      <Route path="/products" element={<SearchSimple />} />
+                      <Route path="/search" element={<SearchSimple />} />
 
-              <Route path="/category/pumps" element={
-                <PlaceholderPage
-                  title="Pool Pumps"
-                  description="Variable speed and single speed pumps for efficient water circulation."
-                  suggestedAction="Our pump selection includes top brands like Pentair, Hayward, and Jandy."
-                />
-              } />
+                      <Route
+                        path="/category/pumps"
+                        element={
+                          <PlaceholderPage
+                            title="Pool Pumps"
+                            description="Variable speed and single speed pumps for efficient water circulation."
+                            suggestedAction="Our pump selection includes top brands like Pentair, Hayward, and Jandy."
+                          />
+                        }
+                      />
 
-              <Route path="/category/filters" element={
-                <PlaceholderPage
-                  title="Pool Filters"
-                  description="Sand, cartridge, and DE filters for crystal clear pool water."
-                  suggestedAction="Find the perfect filtration system for your pool size and needs."
-                />
-              } />
+                      <Route
+                        path="/category/filters"
+                        element={
+                          <PlaceholderPage
+                            title="Pool Filters"
+                            description="Sand, cartridge, and DE filters for crystal clear pool water."
+                            suggestedAction="Find the perfect filtration system for your pool size and needs."
+                          />
+                        }
+                      />
 
-              <Route path="/category/heaters" element={
-                <PlaceholderPage
-                  title="Pool Heaters"
-                  description="Gas, electric, and heat pump heaters for year-round swimming."
-                  suggestedAction="Extend your swimming season with our energy-efficient heating solutions."
-                />
-              } />
+                      <Route
+                        path="/category/heaters"
+                        element={
+                          <PlaceholderPage
+                            title="Pool Heaters"
+                            description="Gas, electric, and heat pump heaters for year-round swimming."
+                            suggestedAction="Extend your swimming season with our energy-efficient heating solutions."
+                          />
+                        }
+                      />
 
-              <Route path="/category/lights" element={
-                <PlaceholderPage
-                  title="Pool Lights"
-                  description="LED and fiber optic lighting systems for stunning pool ambiance."
-                  suggestedAction="Transform your pool with our professional lighting systems."
-                />
-              } />
+                      <Route
+                        path="/category/lights"
+                        element={
+                          <PlaceholderPage
+                            title="Pool Lights"
+                            description="LED and fiber optic lighting systems for stunning pool ambiance."
+                            suggestedAction="Transform your pool with our professional lighting systems."
+                          />
+                        }
+                      />
 
-              <Route path="/category/chemicals" element={
-                <PlaceholderPage
-                  title="Pool Chemicals"
-                  description="Professional-grade chemicals for perfect water balance."
-                  suggestedAction="Maintain pristine water quality with our chemical treatment solutions."
-                />
-              } />
+                      <Route
+                        path="/category/chemicals"
+                        element={
+                          <PlaceholderPage
+                            title="Pool Chemicals"
+                            description="Professional-grade chemicals for perfect water balance."
+                            suggestedAction="Maintain pristine water quality with our chemical treatment solutions."
+                          />
+                        }
+                      />
 
-              <Route path="/category/accessories" element={
-                <PlaceholderPage
-                  title="Pool Accessories"
-                  description="Covers, cleaners, and maintenance tools for complete pool care."
-                  suggestedAction="Complete your pool setup with our professional accessories."
-                />
-              } />
+                      <Route
+                        path="/category/accessories"
+                        element={
+                          <PlaceholderPage
+                            title="Pool Accessories"
+                            description="Covers, cleaners, and maintenance tools for complete pool care."
+                            suggestedAction="Complete your pool setup with our professional accessories."
+                          />
+                        }
+                      />
 
-              {/* Individual Product Pages */}
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/compare" element={<ProductComparison />} />
+                      {/* Individual Product Pages */}
+                      <Route path="/product/:id" element={<ProductDetail />} />
+                      <Route path="/compare" element={<ProductComparison />} />
 
-              {/* Customer Pages */}
-              <Route path="/cart" element={
-                <PlaceholderPage
-                  title="Shopping Cart"
-                  description="Review your selected items and proceed to checkout."
-                  suggestedAction="Secure checkout with multiple payment options is being implemented."
-                />
-              } />
+                      {/* Customer Pages */}
+                      <Route
+                        path="/cart"
+                        element={
+                          <PlaceholderPage
+                            title="Shopping Cart"
+                            description="Review your selected items and proceed to checkout."
+                            suggestedAction="Secure checkout with multiple payment options is being implemented."
+                          />
+                        }
+                      />
 
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/order-success" element={<OrderSuccess />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/order-success" element={<OrderSuccess />} />
 
-              <Route path="/account" element={
-                <ProtectedRoute>
-                  <UserDashboard />
-                </ProtectedRoute>
-              } />
+                      <Route
+                        path="/account"
+                        element={
+                          <ProtectedRoute>
+                            <UserDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
 
-              <Route path="/track-order" element={<OrderTracking />} />
-              <Route path="/track-order/:orderId" element={<OrderTracking />} />
+                      <Route path="/track-order" element={<OrderTracking />} />
+                      <Route
+                        path="/track-order/:orderId"
+                        element={<OrderTracking />}
+                      />
 
-              {/* Content Pages */}
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:id" element={<Blog />} />
+                      {/* Content Pages */}
+                      <Route path="/blog" element={<Blog />} />
+                      <Route path="/blog/:id" element={<Blog />} />
 
-              <Route path="/contact" element={
-                <PlaceholderPage
-                  title="Contact Us"
-                  description="Get in touch with our pool equipment experts."
-                  suggestedAction="Multiple contact options including phone, email, and live chat coming soon."
-                />
-              } />
+                      <Route
+                        path="/contact"
+                        element={
+                          <PlaceholderPage
+                            title="Contact Us"
+                            description="Get in touch with our pool equipment experts."
+                            suggestedAction="Multiple contact options including phone, email, and live chat coming soon."
+                          />
+                        }
+                      />
 
-              <Route path="/consultation" element={<Consultation />} />
+                      <Route path="/consultation" element={<Consultation />} />
 
-              <Route path="/best-sellers" element={
-                <PlaceholderPage
-                  title="Best Sellers"
-                  description="Our most popular and trusted pool equipment."
-                  suggestedAction="Discover why these products are favorites among pool professionals."
-                />
-              } />
+                      <Route
+                        path="/best-sellers"
+                        element={
+                          <PlaceholderPage
+                            title="Best Sellers"
+                            description="Our most popular and trusted pool equipment."
+                            suggestedAction="Discover why these products are favorites among pool professionals."
+                          />
+                        }
+                      />
 
-              <Route path="/bundles" element={
-                <PlaceholderPage
-                  title="Equipment Bundles"
-                  description="Complete system packages at discounted prices."
-                  suggestedAction="Save money with our professionally curated equipment bundles."
-                />
-              } />
+                      <Route
+                        path="/bundles"
+                        element={
+                          <PlaceholderPage
+                            title="Equipment Bundles"
+                            description="Complete system packages at discounted prices."
+                            suggestedAction="Save money with our professionally curated equipment bundles."
+                          />
+                        }
+                      />
 
-              <Route path="/faq" element={<FAQ />} />
+                      <Route path="/faq" element={<FAQ />} />
 
-              {/* Legal Pages */}
-              <Route path="/privacy" element={
-                <PlaceholderPage
-                  title="Privacy Policy"
-                  description="How we protect and handle your personal information."
-                />
-              } />
+                      {/* Legal Pages */}
+                      <Route
+                        path="/privacy"
+                        element={
+                          <PlaceholderPage
+                            title="Privacy Policy"
+                            description="How we protect and handle your personal information."
+                          />
+                        }
+                      />
 
-              <Route path="/terms" element={
-                <PlaceholderPage
-                  title="Terms of Service"
-                  description="Terms and conditions for using our services."
-                />
-              } />
+                      <Route
+                        path="/terms"
+                        element={
+                          <PlaceholderPage
+                            title="Terms of Service"
+                            description="Terms and conditions for using our services."
+                          />
+                        }
+                      />
 
-              <Route path="/shipping" element={
-                <PlaceholderPage
-                  title="Shipping Information"
-                  description="Delivery options and shipping policies."
-                />
-              } />
+                      <Route
+                        path="/shipping"
+                        element={
+                          <PlaceholderPage
+                            title="Shipping Information"
+                            description="Delivery options and shipping policies."
+                          />
+                        }
+                      />
 
-              <Route path="/returns" element={
-                <PlaceholderPage
-                  title="Returns & Exchanges"
-                  description="Our return policy and exchange procedures."
-                />
-              } />
+                      <Route
+                        path="/returns"
+                        element={
+                          <PlaceholderPage
+                            title="Returns & Exchanges"
+                            description="Our return policy and exchange procedures."
+                          />
+                        }
+                      />
 
-              <Route path="/warranty" element={
-                <PlaceholderPage
-                  title="Warranty Information"
-                  description="Product warranties and support coverage."
-                />
-              } />
+                      <Route
+                        path="/warranty"
+                        element={
+                          <PlaceholderPage
+                            title="Warranty Information"
+                            description="Product warranties and support coverage."
+                          />
+                        }
+                      />
 
-              {/* Authentication Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+                      {/* Authentication Routes */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
 
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/products" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminProducts />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/products/new" element={
-                <ProtectedRoute requireAdmin>
-                  <ProductForm />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/products/:id/edit" element={
-                <ProtectedRoute requireAdmin>
-                  <ProductForm />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/orders" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminOrders />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/categories" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminCategories />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/customers" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminCustomers />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/menus" element={
-                <ProtectedRoute requireAdmin>
-                  <MenuManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/inventory" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminInventory />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/seo" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminSEO />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/accounting" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAccounting />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/journal-entries" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminJournalEntries />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/financial-reports" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminFinancialReports />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/accounts-receivable" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAccountsReceivable />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/accounts-payable" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAccountsPayable />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/bank-reconciliation" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminBankReconciliation />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/hr-management" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminHRManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/sales-crm" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminSalesAndCRM />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/procurement" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminProcurement />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/settings" element={
-                <ProtectedRoute requireAdmin>
-                  <AdminSettings />
-                </ProtectedRoute>
-              } />
+                      {/* Admin Routes */}
+                      <Route
+                        path="/admin"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/products"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminProducts />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/products/new"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <ProductForm />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/products/:id/edit"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <ProductForm />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/orders"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminOrders />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/categories"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminCategories />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/customers"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminCustomers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/menus"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <MenuManagement />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/inventory"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminInventory />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/seo"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminSEO />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/accounting"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminAccounting />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/journal-entries"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminJournalEntries />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/financial-reports"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminFinancialReports />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/accounts-receivable"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminAccountsReceivable />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/accounts-payable"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminAccountsPayable />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/bank-reconciliation"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminBankReconciliation />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/hr-management"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminHRManagement />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/sales-crm"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminSalesAndCRM />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/procurement"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminProcurement />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/settings"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminSettings />
+                          </ProtectedRoute>
+                        }
+                      />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </main>
-            <Footer />
-          </div>
-        </BrowserRouter>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </div>
+              </BrowserRouter>
             </TooltipProvider>
           </CartProvider>
         </NotificationProvider>
