@@ -56,6 +56,18 @@ import AdminStorePages from "./pages/admin/StorePages";
 
 const queryClient = new QueryClient();
 
+// Suppress harmless recharts defaultProps warnings
+if (typeof window !== 'undefined') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    const message = args[0]?.toString?.() || '';
+    if (message.includes('defaultProps') && (message.includes('XAxis') || message.includes('YAxis'))) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
