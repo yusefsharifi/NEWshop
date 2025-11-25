@@ -52,6 +52,7 @@ import AdminSalesAndCRM from "./pages/admin/SalesAndCRM";
 import AdminProcurement from "./pages/admin/Procurement";
 import ProductForm from "./pages/admin/ProductForm";
 import MenuManagement from "./pages/admin/MenuManagement";
+import AdminStorePages from "./pages/admin/StorePages";
 
 const queryClient = new QueryClient();
 
