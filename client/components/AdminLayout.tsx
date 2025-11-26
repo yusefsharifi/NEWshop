@@ -272,25 +272,69 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </Button>
         </div>
 
-        <nav className="mt-8 px-4">
-          <div className="space-y-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isCurrentPath(item.href)
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                <item.icon
-                  className={`flex-shrink-0 w-5 h-5 ${dir === "rtl" ? "ml-3" : "mr-3"}`}
-                />
-                {language === "fa" ? item.name_fa : item.name_en}
-              </Link>
-            ))}
-          </div>
+        <nav className="mt-8 px-4 space-y-1 overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+          {navigationSections.map((section) => (
+            <div key={section.id}>
+              {section.id === "main" ? (
+                <div className="space-y-2">
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        isCurrentPath(item.href)
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                      }`}
+                    >
+                      <item.icon
+                        className={`flex-shrink-0 w-5 h-5 ${dir === "rtl" ? "ml-3" : "mr-3"}`}
+                      />
+                      {language === "fa" ? item.name_fa : item.name_en}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <section.icon
+                        className={`flex-shrink-0 w-5 h-5 ${dir === "rtl" ? "ml-3" : "mr-3"}`}
+                      />
+                      {language === "fa" ? section.name_fa : section.name_en}
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${expandedSections[section.id] ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {expandedSections[section.id] && (
+                    <div className="mt-2 space-y-1">
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                            isCurrentPath(item.href)
+                              ? "bg-blue-100 text-blue-700"
+                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                          } ${dir === "rtl" ? "pr-2" : "pl-2"}`}
+                        >
+                          <item.icon
+                            className={`flex-shrink-0 w-4 h-4 ${dir === "rtl" ? "ml-3" : "mr-3"}`}
+                          />
+                          {language === "fa" ? item.name_fa : item.name_en}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <Link
