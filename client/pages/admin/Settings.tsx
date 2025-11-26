@@ -36,6 +36,33 @@ interface StoreSettings {
   maintenanceMode: boolean;
 }
 
+interface PaymentGateway {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+  credentials: {
+    apiKey?: string;
+    secretKey?: string;
+    merchantId?: string;
+    username?: string;
+    password?: string;
+  };
+}
+
+interface CRMSettings {
+  enableSMS: boolean;
+  smsProvider: string;
+  smsApiKey: string;
+  enableWhatsApp: boolean;
+  whatsAppProvider: string;
+  whatsAppApiKey: string;
+  enableTelegram: boolean;
+  telegramBotToken: string;
+  enableEmail: boolean;
+  emailProvider: string;
+}
+
 export default function AdminSettings() {
   const { t, dir, language } = useLanguage();
   const { toast } = useToast();
@@ -187,7 +214,7 @@ export default function AdminSettings() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="storePhone">{language === 'fa' ? 'تلفن فروشگاه' : 'Store Phone'}</Label>
+                      <Label htmlFor="storePhone">{language === 'fa' ? 'تلفن فرو��گاه' : 'Store Phone'}</Label>
                       <Input
                         id="storePhone"
                         value={settings.storePhone}
