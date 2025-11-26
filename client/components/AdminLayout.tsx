@@ -10,6 +10,9 @@ import {
   X,
   LogOut,
   Home,
+  ChevronDown,
+  DollarSign,
+  Warehouse,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
