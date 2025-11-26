@@ -60,11 +60,19 @@ const queryClient = new QueryClient();
 if (typeof window !== 'undefined') {
   const originalWarn = console.warn;
   console.warn = (...args) => {
-    const message = args[0]?.toString?.() || '';
+    const message = String(args[0] || '');
+    // Suppress recharts XAxis/YAxis defaultProps warnings from library
     if (message.includes('defaultProps') && (message.includes('XAxis') || message.includes('YAxis'))) {
       return;
     }
-    originalWarn(...args);
+    // Also suppress by checking the component name in the full args
+    const fullMessage = args.join(' ');
+    if (fullMessage.includes('XAxis2') || fullMessage.includes('YAxis2')) {
+      if (fullMessage.includes('defaultProps')) {
+        return;
+      }
+    }
+    originalWarn.apply(console, args as any);
   };
 }
 
