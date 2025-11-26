@@ -147,6 +147,34 @@ export default function AdminSettings() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const toggleGatewayStatus = (id: string) => {
+    setPaymentGateways(prev =>
+      prev.map(gw => gw.id === id ? { ...gw, isActive: !gw.isActive } : gw)
+    );
+  };
+
+  const updateGatewayCredential = (id: string, key: string, value: string) => {
+    setPaymentGateways(prev =>
+      prev.map(gw =>
+        gw.id === id
+          ? { ...gw, credentials: { ...gw.credentials, [key]: value } }
+          : gw
+      )
+    );
+  };
+
+  const deleteGateway = (id: string) => {
+    setPaymentGateways(prev => prev.filter(gw => gw.id !== id));
+    toast({
+      title: language === 'fa' ? 'موفق' : 'Success',
+      description: language === 'fa' ? 'درگاه حذف شد' : 'Gateway deleted successfully'
+    });
+  };
+
+  const updateCrmSetting = (key: keyof CRMSettings, value: any) => {
+    setCrmSettings(prev => ({ ...prev, [key]: value }));
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -369,7 +397,7 @@ export default function AdminSettings() {
                       <div>
                         <Label>{language === 'fa' ? 'هشدارهای موجودی' : 'Inventory Alerts'}</Label>
                         <p className="text-sm text-gray-500">
-                          {language === 'fa' ? 'هش��ار زمانی که موجودی کم می‌شود' : 'Get alerts when inventory is low'}
+                          {language === 'fa' ? 'هشدار زمانی که موجودی کم می‌شود' : 'Get alerts when inventory is low'}
                         </p>
                       </div>
                       <Switch 
