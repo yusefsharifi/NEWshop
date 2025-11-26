@@ -281,6 +281,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <Link
                       key={item.href}
                       to={item.href}
+                      onClick={() => setSidebarOpen(false)}
                       className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         isCurrentPath(item.href)
                           ? "bg-blue-100 text-blue-700"
