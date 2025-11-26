@@ -89,6 +89,39 @@ export default function AdminSettings() {
     maintenanceMode: false
   });
 
+  const [paymentGateways, setPaymentGateways] = useState<PaymentGateway[]>([
+    {
+      id: '1',
+      name: 'Stripe',
+      type: 'stripe',
+      isActive: true,
+      credentials: { apiKey: '', secretKey: '' }
+    },
+    {
+      id: '2',
+      name: 'PayPal',
+      type: 'paypal',
+      isActive: false,
+      credentials: { clientId: '', secret: '' }
+    }
+  ]);
+
+  const [crmSettings, setCrmSettings] = useState<CRMSettings>({
+    enableSMS: false,
+    smsProvider: 'twilio',
+    smsApiKey: '',
+    enableWhatsApp: false,
+    whatsAppProvider: 'twilio',
+    whatsAppApiKey: '',
+    enableTelegram: false,
+    telegramBotToken: '',
+    enableEmail: true,
+    emailProvider: 'sendgrid'
+  });
+
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [newGateway, setNewGateway] = useState<Partial<PaymentGateway> | null>(null);
+
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
@@ -214,7 +247,7 @@ export default function AdminSettings() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="storePhone">{language === 'fa' ? 'تلفن فرو��گاه' : 'Store Phone'}</Label>
+                      <Label htmlFor="storePhone">{language === 'fa' ? 'تلفن فروشگاه' : 'Store Phone'}</Label>
                       <Input
                         id="storePhone"
                         value={settings.storePhone}
@@ -336,7 +369,7 @@ export default function AdminSettings() {
                       <div>
                         <Label>{language === 'fa' ? 'هشدارهای موجودی' : 'Inventory Alerts'}</Label>
                         <p className="text-sm text-gray-500">
-                          {language === 'fa' ? 'هشدار زمانی که موجودی کم می‌شود' : 'Get alerts when inventory is low'}
+                          {language === 'fa' ? 'هش��ار زمانی که موجودی کم می‌شود' : 'Get alerts when inventory is low'}
                         </p>
                       </div>
                       <Switch 
