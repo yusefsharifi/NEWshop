@@ -2,20 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Shield,
-  Truck,
-  Users,
+  Search,
   Star,
-  CheckCircle,
-  Zap,
-  Droplets,
-  Thermometer,
-  Filter,
-  Lightbulb,
-  Wrench,
-  Play,
-  Award,
-  TrendingUp
+  Heart,
+  ShoppingBag,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,10 +17,7 @@ interface Category {
   id: number;
   name_en: string;
   name_fa: string;
-  description_en: string;
-  description_fa: string;
   slug: string;
-  icon: string;
 }
 
 interface Product {
@@ -47,48 +35,26 @@ interface Product {
 export default function Index() {
   const { t, dir, language } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [latestProducts, setLatestProducts] = useState<Product[]>([]);
   const [bestSellers, setBestSellers] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const heroRef = useRef(null);
-  const featuresRef = useRef(null);
-  const categoriesRef = useRef(null);
-  const bestSellersRef = useRef(null);
-
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
 
-  const featuresInView = useInView(featuresRef, { once: true, margin: "-100px" });
-  const categoriesInView = useInView(categoriesRef, { once: true, margin: "-100px" });
-  const bestSellersInView = useInView(bestSellersRef, { once: true, margin: "-100px" });
-
-  // Mouse movement tracking for parallax effects
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX - window.innerWidth / 2) / 50,
-        y: (e.clientY - window.innerHeight / 2) / 50
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch categories
         const categoriesResponse = await fetch('/api/categories');
         const categoriesData = await categoriesResponse.json();
-        setCategories(categoriesData);
+        setCategories(categoriesData.slice(0, 6));
 
-        // Fetch best sellers
-        const productsResponse = await fetch('/api/products?bestsellers=true&limit=4');
+        const productsResponse = await fetch('/api/products?limit=8');
         const productsData = await productsResponse.json();
-        setBestSellers(productsData);
+        setLatestProducts(productsData.slice(0, 4));
+        setBestSellers(productsData.filter((p: Product) => p.is_bestseller).slice(0, 4));
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -99,515 +65,374 @@ export default function Index() {
     fetchData();
   }, []);
 
-  const getIconComponent = (iconName: string) => {
-    const icons: { [key: string]: any } = {
-      Zap, Filter, Thermometer, Lightbulb, Droplets, Wrench
-    };
-    return icons[iconName] || Wrench;
-  };
-
-
-  const features = [
+  const heroContent = [
     {
-      icon: Shield,
-      title: t('feature.quality.title'),
-      description: t('feature.quality.description')
-    },
-    {
-      icon: Truck,
-      title: t('feature.shipping.title'),
-      description: t('feature.shipping.description')
-    },
-    {
-      icon: Users,
-      title: t('feature.support.title'),
-      description: t('feature.support.description')
+      title: language === 'fa' ? 'تی‌شرت‌های برتر' : 'Premium T-Shirts',
+      subtitle: language === 'fa' ? 'کیفیت، سبک، راحتی' : 'Quality. Style. Comfort',
+      image: '/api/placeholder/1200/600'
     }
   ];
 
   return (
-    <div className="min-h-screen" dir={dir}>
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-30"
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-            }}
-            animate={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-            }}
-            transition={{
-              duration: Math.random() * 20 + 20,
-              repeat: Infinity,
-              repeatType: "reverse",
-              ease: "linear"
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Hero Section */}
+    <div className="min-h-screen bg-white" dir={dir}>
+      {/* Hero Section - Minimal Modern */}
       <motion.section
         ref={heroRef}
         style={{ y: heroY, opacity: heroOpacity }}
-        className="relative min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white overflow-hidden flex items-center"
+        className="relative h-screen bg-white text-gray-900 overflow-hidden flex items-center"
       >
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
-          <motion.div
-            className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-400 rounded-full opacity-20 blur-3xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
+        <div className="absolute inset-0 overflow-hidden">
+          <img
+            src={heroContent[0].image}
+            alt="Hero"
+            className="w-full h-full object-cover opacity-40"
           />
-          <motion.div
-            className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-indigo-400 rounded-full opacity-20 blur-3xl"
-            animate={{
-              scale: [1.2, 1, 1.2],
-              rotate: [360, 180, 0],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: dir === 'rtl' ? 50 : -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className={dir === 'rtl' ? 'text-right' : 'text-left'}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className={dir === 'rtl' ? 'text-right' : 'text-left'}
+          >
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="text-lg font-light text-gray-600 mb-4 uppercase tracking-widest"
             >
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-blue-100 text-sm font-medium mb-6"
-              >
-                <Award className="w-4 h-4 mr-2" />
-                {language === 'fa' ? 'بیش از ۱۰ سال تجربه' : '10+ Years of Excellence'}
-              </motion.div>
+              {language === 'fa' ? 'مجموعه جدید' : 'New Collection'}
+            </motion.p>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="text-5xl lg:text-7xl font-bold leading-tight mb-6"
-              >
-                <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                  {t('home.hero.title')}
-                </span>
-                <br />
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.8, duration: 0.6, type: "spring" }}
-                  className="text-blue-300"
-                >
-                  {t('home.hero.subtitle')}
-                </motion.span>
-              </motion.h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-h1 text-gray-900 mb-6 max-w-4xl"
+            >
+              {heroContent[0].title}
+            </motion.h1>
 
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-                className="text-xl text-blue-100 mb-8 leading-relaxed max-w-2xl"
-              >
-                {t('home.hero.description')}
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.8 }}
-                className="flex flex-col sm:flex-row gap-6"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link to="/products">
-                    <Button size="lg" className="bg-white text-blue-700 hover:bg-gray-100 font-semibold shadow-2xl h-14 px-8">
-                      {t('home.hero.shopButton')}
-                      <motion.div
-                        animate={{ x: [0, 5, 0] }}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                      >
-                        <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
-                      </motion.div>
-                    </Button>
-                  </Link>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-blue-700 h-14 px-8 backdrop-blur-sm">
-                    <Play className="w-5 h-5 mr-2" />
-                    {t('home.hero.consultationButton')}
-                  </Button>
-                </motion.div>
-              </motion.div>
-
-              {/* Stats */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2, duration: 0.8 }}
-                className="grid grid-cols-3 gap-8 mt-12 pt-8 border-t border-white/20"
-              >
-                {[
-                  { number: '10K+', label: language === 'fa' ? 'مشتری راضی' : 'Happy Customers' },
-                  { number: '500+', label: language === 'fa' ? 'محصول' : 'Products' },
-                  { number: '24/7', label: language === 'fa' ? '��شتیبانی' : 'Support' }
-                ].map((stat, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 1.4 + index * 0.1, type: "spring" }}
-                    className="text-center"
-                  >
-                    <div className="text-2xl font-bold text-white">{stat.number}</div>
-                    <div className="text-blue-200 text-sm">{stat.label}</div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="text-xl text-gray-700 mb-10 max-w-2xl font-light"
+            >
+              {heroContent[0].subtitle}
+            </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, x: dir === 'rtl' ? -50 : 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-              className="relative"
-              style={{
-                transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
-              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
             >
-              <motion.div
-                className="relative z-10"
-                whileHover={{
-                  rotateY: 10,
-                  rotateX: 10,
-                  scale: 1.05
-                }}
-                transition={{ type: "spring", stiffness: 300 }}
-                style={{ transformStyle: "preserve-3d" }}
-              >
-                <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
-                  <img
-                    src="/api/placeholder/500/400"
-                    alt="Professional pool equipment"
-                    className="w-full h-auto rounded-2xl shadow-xl"
-                  />
-
-                  {/* Floating Cards */}
-                  <motion.div
-                    className="absolute -top-6 -left-6 bg-white rounded-2xl p-4 shadow-xl"
-                    animate={{
-                      y: [0, -10, 0],
-                      rotate: [0, 5, 0]
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">
-                          {language === 'fa' ? 'کیفیت تضمینی' : 'Quality Assured'}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {language === 'fa' ? 'ضمانت ۲ ساله' : '2 Year Warranty'}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-4 shadow-xl"
-                    animate={{
-                      y: [0, 10, 0],
-                      rotate: [0, -5, 0]
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: 1
-                    }}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">
-                          {language === 'fa' ? 'فروش بالا' : 'Top Rated'}
-                        </div>
-                        <div className="text-sm text-gray-600">4.9/5 ⭐</div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              {/* Background Decorations */}
-              <motion.div
-                className="absolute -top-8 -right-8 w-32 h-32 bg-blue-400 rounded-full opacity-30 blur-2xl"
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.3, 0.5, 0.3]
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-              <motion.div
-                className="absolute -bottom-8 -left-8 w-40 h-40 bg-indigo-400 rounded-full opacity-20 blur-2xl"
-                animate={{
-                  scale: [1.2, 1, 1.2],
-                  opacity: [0.2, 0.4, 0.2]
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 1
-                }}
-              />
+              <Link to="/products">
+                <Button size="lg" className="bg-gray-900 text-white hover:bg-gray-800 font-medium h-14 px-8">
+                  {language === 'fa' ? 'خریداری کنید' : 'Shop Now'}
+                  <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
+                </Button>
+              </Link>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
-            <motion.div
-              className="w-1 h-3 bg-white rounded-full mt-2"
-              animate={{ opacity: [1, 0, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </div>
-        </motion.div>
       </motion.section>
 
-      {/* Features */}
-      <section className="py-16 bg-gray-50">
+      {/* Categories Section */}
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-8 h-8 text-white" />
+          <div className="mb-12">
+            <h2 className="text-h2 text-gray-900 mb-4">
+              {language === 'fa' ? 'دسته‌بندی‌ها' : 'Categories'}
+            </h2>
+            <div className="w-16 h-1 bg-gray-900"></div>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 animate-pulse rounded-lg"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {categories.map((category) => {
+                const categoryName = language === 'fa' ? category.name_fa : category.name_en;
+                return (
+                  <Link key={category.id} to={`/category/${category.slug}`}>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      className="relative h-48 rounded-lg overflow-hidden bg-gray-100 group cursor-pointer"
+                    >
+                      <img
+                        src="/api/placeholder/300/400"
+                        alt={categoryName}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors duration-300"></div>
+                      <div className="absolute inset-0 flex items-end p-4">
+                        <p className="text-white font-semibold text-sm">{categoryName}</p>
+                      </div>
+                    </motion.div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Latest Products */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-h2 text-gray-900 mb-4">
+                {language === 'fa' ? 'جدیدترین‌ها' : 'Latest Arrivals'}
+              </h2>
+              <div className="w-16 h-1 bg-gray-900"></div>
+            </div>
+            <Link to="/products" className="text-gray-900 font-medium hover:text-gray-600 transition-colors flex items-center gap-2">
+              {language === 'fa' ? 'مشاهده همه' : 'View All'}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-80 bg-gray-200 animate-pulse rounded-lg mb-4"></div>
+                  <div className="h-4 bg-gray-200 animate-pulse rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 animate-pulse rounded w-20"></div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {latestProducts.map((product) => (
+                <ProductCard key={product.id} product={product} language={language} dir={dir} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Bestsellers */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-h2 text-gray-900 mb-4">
+                {language === 'fa' ? 'پرفروش‌ترین‌ها' : 'Bestsellers'}
+              </h2>
+              <div className="w-16 h-1 bg-gray-900"></div>
+            </div>
+            <Link to="/products?bestsellers=true" className="text-gray-900 font-medium hover:text-gray-600 transition-colors flex items-center gap-2">
+              {language === 'fa' ? 'مشاهده همه' : 'View All'}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-80 bg-gray-200 animate-pulse rounded-lg mb-4"></div>
+                  <div className="h-4 bg-gray-200 animate-pulse rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 animate-pulse rounded w-20"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {bestSellers.map((product) => (
+                <ProductCard key={product.id} product={product} language={language} dir={dir} showBadge />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Lookbook Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-12">
+            <h2 className="text-h2 text-gray-900 mb-4">
+              {language === 'fa' ? 'مجموعه بهاری' : 'Spring Collection'}
+            </h2>
+            <div className="w-16 h-1 bg-gray-900"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                whileHover={{ scale: 1.02 }}
+                className="h-96 rounded-lg overflow-hidden bg-gray-200 relative group cursor-pointer"
+              >
+                <img
+                  src={`/api/placeholder/400/600`}
+                  alt={`Look ${i}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-end p-6">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-white font-medium mb-3">
+                      {language === 'fa' ? `نگاه ${i}` : `Look ${i}`}
+                    </p>
+                    <Button size="sm" variant="outline" className="border-white text-white hover:bg-white hover:text-black">
+                      {language === 'fa' ? 'مشاهده' : 'View'}
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Product Categories */}
-      <section className="py-20">
+      {/* Social Proof / Reviews */}
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              {t('category.title')}
+            <h2 className="text-h2 text-gray-900 mb-4">
+              {language === 'fa' ? 'نظر مشتریان' : 'Customer Reviews'}
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              {t('category.subtitle')}
+            <div className="flex justify-center gap-1 mb-6">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+              ))}
+            </div>
+            <p className="text-gray-600 text-lg">
+              {language === 'fa' ? '۴.۹ از ۵ ستاره بر اساس ۱۲۰۰+ نقد' : '4.9 out of 5 based on 1200+ reviews'}
             </p>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[...Array(6)].map((_, index) => (
-                <Card key={index} className="border-0 overflow-hidden">
-                  <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                    <div className="h-3 bg-gray-200 rounded mb-4 animate-pulse"></div>
-                    <div className="h-3 bg-gray-200 rounded w-20 animate-pulse"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {categories.map((category) => {
-                const IconComponent = getIconComponent(category.icon);
-                const categoryName = language === 'fa' ? category.name_fa : category.name_en;
-                const categoryDescription = language === 'fa' ? category.description_fa : category.description_en;
-
-                return (
-                  <Link key={category.id} to={`/category/${category.slug}`}>
-                    <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 overflow-hidden">
-                      <div className="relative">
-                        <img
-                          src="/api/placeholder/300/200"
-                          alt={categoryName}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium`}>
-                          {language === 'fa' ? '+ محصول' : '+ Products'}
-                        </div>
-                      </div>
-                      <CardContent className="p-6">
-                        <div className={`flex items-center mb-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                          <div className={`w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`}>
-                            <IconComponent className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <h3 className="text-xl font-semibold text-gray-900">{categoryName}</h3>
-                        </div>
-                        <p className="text-gray-600 mb-4">{categoryDescription}</p>
-                        <div className={`flex items-center text-blue-600 font-medium group-hover:text-blue-700 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                          {t('category.shopNow')}
-                          <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'mr-2 group-hover:-translate-x-1' : 'ml-2 group-hover:translate-x-1'} transition-transform`} />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Best Sellers */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              {t('bestSellers.title')}
-            </h2>
-            <p className="text-xl text-gray-600">
-              {t('bestSellers.subtitle')}
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, index) => (
-                <Card key={index} className="border-0 overflow-hidden">
-                  <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
-                  <CardContent className="p-4">
-                    <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                    <div className="h-3 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {bestSellers.map((product) => {
-                const productName = language === 'fa' ? product.name_fa : product.name_en;
-
-                return (
-                  <Link key={product.id} to={`/product/${product.id}`}>
-                    <Card className="group hover:shadow-lg transition-all duration-300 border-0 overflow-hidden">
-                      <div className="relative">
-                        <img
-                          src={product.image_url}
-                          alt={productName}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className={`absolute top-3 ${dir === 'rtl' ? 'right-3' : 'left-3'} bg-green-500 text-white px-2 py-1 rounded text-xs font-medium`}>
-                          {language === 'fa' ? 'پرفروش' : 'Best Seller'}
-                        </div>
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                          {productName}
-                        </h3>
-                        <div className={`flex items-center mb-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                              />
-                            ))}
-                          </div>
-                          <span className={`text-sm text-gray-600 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>({product.review_count})</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-xl font-bold text-gray-900">${product.price}</span>
-                            {product.original_price && (
-                              <span className={`text-sm text-gray-500 line-through ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}>${product.original_price}</span>
-                            )}
-                          </div>
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="text-center mt-10">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-              {t('bestSellers.viewAll')}
-              <ArrowRight className={`w-5 h-5 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`} />
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="border border-gray-200">
+                <CardContent className="p-6">
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(5)].map((_, j) => (
+                      <Star key={j} className="w-4 h-4 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4 font-light">
+                    {language === 'fa'
+                      ? 'کیفیت فوق‌العاده و تحویل سریع. دوباره خریداری خواهم کرد!'
+                      : 'Exceptional quality and fast delivery. Will buy again!'}
+                  </p>
+                  <p className="text-gray-900 font-medium">
+                    {language === 'fa' ? 'فاطمه' : 'Sarah'}
+                  </p>
+                  <p className="text-gray-600 text-sm">
+                    {language === 'fa' ? 'خریدار تایید‌شده' : 'Verified Buyer'}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            {t('cta.title')}
+      <section className="py-24 bg-gray-900 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-h1 text-white mb-6">
+            {language === 'fa' ? 'آغاز سفر سبک خود' : 'Start Your Style Journey'}
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            {t('cta.description')}
+          <p className="text-xl font-light text-gray-300 mb-10">
+            {language === 'fa'
+              ? 'کالکشن انحصاری و تخفیف‌های ویژه برای مشترکین'
+              : 'Exclusive collections and special discounts for subscribers'}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
-              {t('cta.consultation')}
-            </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
-              {t('cta.call')}
+          <div className="flex gap-4 justify-center flex-col sm:flex-row max-w-md mx-auto">
+            <input
+              type="email"
+              placeholder={language === 'fa' ? 'ایمیل خود را وارد کنید' : 'Enter your email'}
+              className="flex-1 px-6 py-4 rounded-lg text-gray-900 font-light focus:outline-none"
+            />
+            <Button className="bg-white text-gray-900 hover:bg-gray-100 font-medium">
+              {language === 'fa' ? 'اشتراک' : 'Subscribe'}
             </Button>
           </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function ProductCard({
+  product,
+  language,
+  dir,
+  showBadge = false
+}: {
+  product: Product;
+  language: string;
+  dir: string;
+  showBadge?: boolean;
+}) {
+  const [liked, setLiked] = useState(false);
+  const productName = language === 'fa' ? product.name_fa : product.name_en;
+
+  return (
+    <Link to={`/product/${product.id}`}>
+      <motion.div whileHover={{ scale: 1.02 }} className="h-full">
+        <div className="relative mb-4 bg-gray-100 rounded-lg overflow-hidden group h-80">
+          <img
+            src={product.image_url}
+            alt={productName}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          {showBadge && (
+            <div className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} bg-green-500 text-white px-3 py-1 rounded text-xs font-medium`}>
+              {language === 'fa' ? 'پرفروش' : 'Best Seller'}
+            </div>
+          )}
+          <motion.button
+            onClick={(e) => {
+              e.preventDefault();
+              setLiked(!liked);
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className={`absolute top-4 ${dir === 'rtl' ? 'right-4' : 'left-4'} p-2 rounded-full transition-colors`}
+          >
+            <Heart
+              className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+            />
+          </motion.button>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 hover:text-gray-600 transition-colors">
+            {productName}
+          </h3>
+
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-gray-500">({product.review_count})</span>
+          </div>
+
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-semibold text-gray-900">${product.price}</span>
+            {product.original_price && (
+              <span className="text-sm text-gray-500 line-through">${product.original_price}</span>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </Link>
   );
 }
