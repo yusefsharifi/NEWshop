@@ -63,6 +63,25 @@ interface CRMSettings {
   emailProvider: string;
 }
 
+interface BrandingSettings {
+  brandName: string;
+  logoUrl: string;
+  logoFile: File | null;
+}
+
+interface ColorPalette {
+  id: string;
+  name: string;
+  description: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    neutral: string;
+  };
+  suitableFor: string;
+}
+
 export default function AdminSettings() {
   const { t, dir, language } = useLanguage();
   const { toast } = useToast();
