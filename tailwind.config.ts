@@ -90,8 +90,11 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['IranSans', 'Vazir', 'system-ui', 'sans-serif'],
+        display: ['Dana', 'IranSans', 'system-ui', 'sans-serif'],
+        mono: ['Courier Prime', 'monospace'],
+        title: ['Dana', 'IranSans', 'system-ui', 'sans-serif'],
+        body: ['IranSans', 'Vazir', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {
