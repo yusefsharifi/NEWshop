@@ -141,6 +141,53 @@ export default function AdminSettings() {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [newGateway, setNewGateway] = useState<Partial<PaymentGateway> | null>(null);
 
+  const [branding, setBranding] = useState<BrandingSettings>({
+    brandName: 'Fashion Store',
+    logoUrl: '',
+    logoFile: null
+  });
+
+  const [selectedPaletteId, setSelectedPaletteId] = useState<string>('1');
+
+  const colorPalettes: ColorPalette[] = [
+    {
+      id: '1',
+      name: language === 'fa' ? 'لوکس حداقل' : 'Minimal Luxury',
+      description: language === 'fa' ? 'سیاه + سفید + طلای نرم' : 'Black + White + Soft Gold',
+      colors: {
+        primary: '#0C0C0C',
+        secondary: '#FFFFFF',
+        accent: '#C6A667',
+        neutral: '#E5E5E5'
+      },
+      suitableFor: language === 'fa' ? 'لباس شب، کیف‌ها و کفش‌ها، پالتو، برندهای برتر' : 'Evening dresses, bags and shoes, coats, Premium brands'
+    },
+    {
+      id: '2',
+      name: language === 'fa' ? 'مدرن و تمیز' : 'Modern & Clean',
+      description: language === 'fa' ? 'کرم + سیاه + زیتون سبز' : 'Cream + Black + Olive Green',
+      colors: {
+        primary: '#111111',
+        secondary: '#F7F3EF',
+        accent: '#6C6F57',
+        neutral: '#F1EFEB'
+      },
+      suitableFor: language === 'fa' ? 'مد طبیعی، محصولات حداقل، کفش‌های چرمی، لباس روزمره' : 'Nature fashion, minimal products, leather shoes, everyday wear'
+    },
+    {
+      id: '3',
+      name: language === 'fa' ? 'ورزشی / خیابانی' : 'Sport / Street',
+      description: language === 'fa' ? 'سفید + سیاه + نارنجی انرژی‌بخش + خاکستری' : 'White + Black + Energetic Orange + Gray',
+      colors: {
+        primary: '#000000',
+        secondary: '#FFFFFF',
+        accent: '#FF6A00',
+        neutral: '#B6B6B6'
+      },
+      suitableFor: language === 'fa' ? 'کتان، تی‌شرت‌ها، هودی، لباس جوانان' : 'Linen, T-shirts, hoodies, youth clothing'
+    }
+  ];
+
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
