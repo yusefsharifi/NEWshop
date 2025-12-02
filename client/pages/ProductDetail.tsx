@@ -1,22 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Star, 
-  Heart, 
-  Share2, 
-  ShoppingCart, 
-  Zap, 
-  Shield, 
-  Truck, 
-  ChevronDown,
-  ChevronUp,
+import {
+  Star,
+  Heart,
+  Share2,
+  ShoppingCart,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Minus,
-  Check,
-  Eye,
-  MessageCircle,
-  ThumbsUp
+  ZoomIn,
+  Truck,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import ProductReviews from '@/components/ProductReviews';
 
 interface Product {
   id: number;
@@ -69,10 +64,23 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState('description');
   const [isLiked, setIsLiked] = useState(false);
-  const [showFullSpecs, setShowFullSpecs] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [showZoom, setShowZoom] = useState(false);
+  const imageRef = useRef<HTMLDivElement>(null);
+
+  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const colors = [
+    { name: language === 'fa' ? 'سیاه' : 'Black', hex: '#000000', stock: 5 },
+    { name: language === 'fa' ? 'سفید' : 'White', hex: '#FFFFFF', stock: 8 },
+    { name: language === 'fa' ? 'خاکستری' : 'Gray', hex: '#9CA3AF', stock: 3 },
+    { name: language === 'fa' ? 'نیلی' : 'Navy', hex: '#001F3F', stock: 6 }
+  ];
+
+  const productImages = [product?.image_url, product?.image_url, product?.image_url, product?.image_url];
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -80,36 +88,35 @@ export default function ProductDetail() {
         const response = await fetch(`/api/products/${id}`);
         const data = await response.json();
         setProduct(data);
-        
-        // Mock reviews data
+
         setReviews([
           {
             id: 1,
-            user_name: language === 'fa' ? 'احمد حسینی' : 'Ahmad Hosseini',
+            user_name: language === 'fa' ? 'فاطمه محمدی' : 'Fatima Mohammad',
             rating: 5,
-            comment: language === 'fa' 
-              ? 'محصول فوق‌العاده‌ای است. کیفیت عالی و قیمت مناسب.' 
-              : 'Excellent product! Great quality and reasonable price.',
+            comment: language === 'fa'
+              ? 'فوق‌العاده! کیفیت پارچه خیلی خوبه و طراحی شیک است.'
+              : 'Amazing! The fabric quality is excellent and design is stylish.',
             date: '2024-01-15',
             verified: true
           },
           {
             id: 2,
-            user_name: language === 'fa' ? 'مریم کریمی' : 'Maryam Karimi',
+            user_name: language === 'fa' ? 'علی رضایی' : 'Ali Rezaei',
             rating: 4,
-            comment: language === 'fa' 
-              ? 'خیلی راضی هستم. نصب هم آسان بود.' 
-              : 'Very satisfied. Installation was easy too.',
+            comment: language === 'fa'
+              ? 'خیلی راضی‌ام. اندازه دقیق، رنگ اصلی و راحت برای پوشیدن.'
+              : 'Very satisfied. Perfect fit, true color, and comfortable to wear.',
             date: '2024-01-10',
             verified: true
           },
           {
             id: 3,
-            user_name: language === 'fa' ? 'علی محمدی' : 'Ali Mohammadi',
+            user_name: language === 'fa' ? 'مریم حسن' : 'Maryam Hassan',
             rating: 5,
-            comment: language === 'fa' 
-              ? 'بهترین خرید امسالم. توصیه می‌کنم.' 
-              : 'Best purchase this year. Highly recommend.',
+            comment: language === 'fa'
+              ? 'بهترین خریدی که این‌جا کردم. توصیه می‌کنم!'
+              : 'Best purchase I\'ve made here. Highly recommend!',
             date: '2024-01-05',
             verified: false
           }
@@ -126,61 +133,41 @@ export default function ProductDetail() {
     }
   }, [id, language]);
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageRef.current) return;
+    const rect = imageRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPosition({ x, y });
+  };
+
   const handleAddToCart = () => {
+    if (!selectedSize || !selectedColor) {
+      alert(language === 'fa' ? 'لطفا اندازه و رنگ را انتخاب کنید' : 'Please select size and color');
+      return;
+    }
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.6, ease: "easeOut" }
-    }
-  };
-
-  const imageVariants = {
-    hover: { 
-      scale: 1.05,
-      transition: { duration: 0.3 }
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">{t('common.loading')}</p>
-        </motion.div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-12 h-12 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">{language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}</p>
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{language === 'fa' ? 'محصول پیدا نشد' : 'Product not found'}</h1>
           <Link to="/products">
-            <Button>Back to Products</Button>
+            <Button>{language === 'fa' ? 'بازگشت به محصولات' : 'Back to Products'}</Button>
           </Link>
         </div>
       </div>
@@ -189,564 +176,432 @@ export default function ProductDetail() {
 
   const productName = language === 'fa' ? product.name_fa : product.name_en;
   const productDescription = language === 'fa' ? product.description_fa : product.description_en;
-  const productSpecs = language === 'fa' ? product.specifications_fa : product.specifications_en;
-  const categoryName = language === 'fa' ? product.category?.name_fa : product.category?.name_en;
-
-  const discount = product.original_price 
+  const discount = product.original_price
     ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50" dir={dir}>
-      {/* Floating particles background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-20"
-            initial={{ 
-              x: Math.random() * window.innerWidth,
-              y: window.innerHeight + 100
-            }}
-            animate={{
-              y: -100,
-              x: Math.random() * window.innerWidth
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
-        ))}
+    <div className="min-h-screen bg-white" dir={dir}>
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <nav className="flex items-center space-x-3 text-sm">
+            <Link to="/" className="text-gray-600 hover:text-gray-900">{language === 'fa' ? 'خانه' : 'Home'}</Link>
+            <span className="text-gray-400">/</span>
+            <Link to="/products" className="text-gray-600 hover:text-gray-900">{language === 'fa' ? 'محصولات' : 'Products'}</Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-900 truncate font-medium">{productName}</span>
+          </nav>
+        </div>
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10"
-      >
-        {/* Breadcrumb */}
-        <motion.div 
-          variants={itemVariants}
-          className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-20"
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <nav className="flex items-center space-x-3 text-sm">
-              <Link to="/" className="text-blue-600 hover:text-blue-800 transition-colors">
-                {language === 'fa' ? 'خانه' : 'Home'}
-              </Link>
-              <span className="text-gray-400">/</span>
-              <Link to="/products" className="text-blue-600 hover:text-blue-800 transition-colors">
-                {t('nav.products')}
-              </Link>
-              <span className="text-gray-400">/</span>
-              <Link to={`/category/${product.category?.slug}`} className="text-blue-600 hover:text-blue-800 transition-colors">
-                {categoryName}
-              </Link>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-600 truncate">{productName}</span>
-            </nav>
-          </div>
-        </motion.div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+          {/* Product Images */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-4"
+          >
+            {/* Main Image */}
+            <div
+              ref={imageRef}
+              onMouseMove={handleMouseMove}
+              onMouseEnter={() => setShowZoom(true)}
+              onMouseLeave={() => setShowZoom(false)}
+              className="relative overflow-hidden rounded-lg bg-gray-100 aspect-square group cursor-zoom-in"
+            >
+              <img
+                src={productImages[selectedImage] || product.image_url}
+                alt={productName}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Product Images */}
-            <motion.div variants={itemVariants} className="space-y-6">
-              <div className="relative group">
-                <motion.div
-                  variants={imageVariants}
-                  whileHover="hover"
-                  className="relative overflow-hidden rounded-2xl bg-white shadow-2xl"
+              {/* Zoom overlay */}
+              <AnimatePresence>
+                {showZoom && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/10"
+                  >
+                    <ZoomIn className="w-8 h-8 text-white absolute bottom-4 right-4" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Badges */}
+              <div className="absolute top-4 left-4 space-y-2">
+                {product.is_bestseller && (
+                  <Badge className="bg-green-500 text-white">{language === 'fa' ? 'پرفروش' : 'Bestseller'}</Badge>
+                )}
+                {discount > 0 && (
+                  <Badge className="bg-red-500 text-white">{discount}% {language === 'fa' ? 'تخفیف' : 'OFF'}</Badge>
+                )}
+              </div>
+
+              {/* Floating Like Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsLiked(!isLiked)}
+                className={`absolute top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  isLiked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-600 hover:bg-white'
+                }`}
+              >
+                <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+              </motion.button>
+            </div>
+
+            {/* Thumbnail Images */}
+            <div className="grid grid-cols-4 gap-3">
+              {productImages.map((img, index) => (
+                <motion.button
+                  key={index}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setSelectedImage(index)}
+                  className={`aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 transition-all ${
+                    selectedImage === index ? 'border-gray-900' : 'border-transparent hover:border-gray-300'
+                  }`}
                 >
-                  <img
-                    src={product.image_url}
-                    alt={productName}
-                    className="w-full h-96 object-cover"
-                  />
-                  
-                  {/* Floating badges */}
-                  <div className="absolute top-4 left-4 space-y-2">
-                    {product.is_bestseller && (
-                      <motion.div
-                        initial={{ scale: 0, rotate: -10 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: 0.5, type: "spring" }}
-                      >
-                        <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg">
-                          {language === 'fa' ? 'پرفروش' : 'Bestseller'}
-                        </Badge>
-                      </motion.div>
-                    )}
-                    {discount > 0 && (
-                      <motion.div
-                        initial={{ scale: 0, rotate: 10 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: 0.7, type: "spring" }}
-                      >
-                        <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
-                          {discount}% {language === 'fa' ? 'تخفیف' : 'OFF'}
-                        </Badge>
-                      </motion.div>
-                    )}
-                  </div>
+                  <img src={img || product.image_url} alt={`View ${index + 1}`} className="w-full h-full object-cover" />
+                </motion.button>
+              ))}
+            </div>
 
-                  {/* Floating action buttons */}
-                  <div className="absolute top-4 right-4 space-y-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setIsLiked(!isLiked)}
-                      className={`w-12 h-12 rounded-full backdrop-blur-md shadow-lg flex items-center justify-center transition-all ${
-                        isLiked 
-                          ? 'bg-red-500 text-white' 
-                          : 'bg-white/80 text-gray-600 hover:bg-white'
-                      }`}
-                    >
-                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-gray-600 hover:bg-white transition-all"
-                    >
-                      <Share2 className="w-5 h-5" />
-                    </motion.button>
-                  </div>
+            {/* Image Navigation */}
+            <p className="text-sm text-gray-500">{language === 'fa' ? `تصویر ${selectedImage + 1} از 4` : `Image ${selectedImage + 1} of 4`}</p>
+          </motion.div>
 
-                  {/* Glass morphism overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </motion.div>
+          {/* Product Details */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8"
+          >
+            {/* Header */}
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+                  <h1 className="text-h2 text-gray-900">{productName}</h1>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  className="p-2 text-gray-600 hover:text-gray-900"
+                >
+                  <Share2 className="w-5 h-5" />
+                </motion.button>
+              </div>
 
-                {/* Thumbnail images */}
-                <div className="grid grid-cols-4 gap-4 mt-4">
-                  {[product.image_url, product.image_url, product.image_url, product.image_url].map((img, index) => (
-                    <motion.button
-                      key={index}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedImage(index)}
-                      className={`relative overflow-hidden rounded-lg aspect-square ${
-                        selectedImage === index 
-                          ? 'ring-2 ring-blue-500 ring-offset-2' 
-                          : 'hover:ring-2 hover:ring-blue-300 hover:ring-offset-2'
-                      } transition-all`}
-                    >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                    </motion.button>
+              {/* Rating */}
+              <div className="flex items-center gap-4">
+                <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                    />
                   ))}
                 </div>
+                <span className="text-sm text-gray-600">
+                  {product.rating} {language === 'fa' ? '(' : '('}{product.review_count} {language === 'fa' ? 'نقد)' : 'reviews)'}
+                </span>
               </div>
-            </motion.div>
 
-            {/* Product Details */}
-            <motion.div variants={itemVariants} className="space-y-8">
-              {/* Header */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline" className="text-blue-600 border-blue-600">
-                    {product.brand}
-                  </Badge>
-                  <Badge variant="outline">
-                    SKU: {product.sku}
-                  </Badge>
+              {/* Price */}
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-4xl font-bold text-gray-900">${product.price}</span>
+                  {product.original_price && (
+                    <span className="text-xl text-gray-500 line-through">${product.original_price}</span>
+                  )}
                 </div>
+                {discount > 0 && (
+                  <p className="text-sm text-green-600 font-medium">
+                    {language === 'fa' ? `صرفه‌جویی: $${product.original_price! - product.price}` : `Save: $${product.original_price! - product.price}`}
+                  </p>
+                )}
+              </div>
 
-                <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                  {productName}
-                </h1>
+              {/* Stock Status */}
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${product.stock_quantity > 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className={`text-sm font-medium ${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {product.stock_quantity > 10
+                    ? language === 'fa' ? 'موجود در انبار' : 'In Stock'
+                    : product.stock_quantity > 0
+                      ? language === 'fa' ? `فقط ${product.stock_quantity} عدد باقی` : `Only ${product.stock_quantity} left`
+                      : language === 'fa' ? 'ناموجود' : 'Out of Stock'}
+                </span>
+              </div>
+            </div>
 
-                {/* Rating */}
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex items-center space-x-4"
+            {/* Quick Description */}
+            <p className="text-gray-700 leading-relaxed">{productDescription}</p>
+
+            {/* Color Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                {language === 'fa' ? 'رنگ' : 'Color'}
+              </label>
+              <div className="flex gap-4 flex-wrap">
+                {colors.map((color) => (
+                  <motion.button
+                    key={color.hex}
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => setSelectedColor(color.hex)}
+                    className={`relative group ${selectedColor === color.hex ? 'ring-2 ring-offset-2 ring-gray-900' : 'hover:ring-2 hover:ring-offset-2 hover:ring-gray-300'}`}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-full border-2 border-gray-200 transition-all"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                    {selectedColor === color.hex && (
+                      <Check className="absolute inset-0 m-auto text-white w-5 h-5" />
+                    )}
+                    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 text-xs bg-gray-900 text-white px-2 py-1 rounded whitespace-nowrap">
+                      {color.name}
+                    </span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Size Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                {language === 'fa' ? 'اندازه' : 'Size'}
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                {sizes.map((size) => (
+                  <motion.button
+                    key={size}
+                    whileHover={{ scale: 1.05 }}
+                    onClick={() => setSelectedSize(size)}
+                    className={`py-3 px-4 rounded-lg border-2 font-medium transition-all ${
+                      selectedSize === size
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-300 text-gray-900 hover:border-gray-900'
+                    }`}
+                  >
+                    {size}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quantity & Add to Cart */}
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-900">{language === 'fa' ? 'تعداد' : 'Quantity'}</span>
+                <div className="flex items-center border border-gray-300 rounded-lg">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-2 hover:bg-gray-100"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="px-6 py-2 font-medium">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="p-2 hover:bg-gray-100"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={product.stock_quantity === 0}
+                  className="w-full h-14 text-lg font-semibold bg-gray-900 text-white hover:bg-gray-800 relative overflow-hidden"
                 >
-                  <div className="flex items-center space-x-1">
-                    {[...Array(5)].map((_, i) => (
+                  <AnimatePresence mode="wait">
+                    {addedToCart ? (
                       <motion.div
-                        key={i}
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: 0.4 + i * 0.1, type: "spring" }}
+                        key="added"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0 }}
+                        className="flex items-center gap-2"
                       >
-                        <Star 
-                          className={`w-5 h-5 ${
-                            i < Math.floor(product.rating) 
-                              ? 'text-yellow-400 fill-current' 
-                              : 'text-gray-300'
-                          }`} 
-                        />
+                        <Check className="w-5 h-5" />
+                        {language === 'fa' ? 'به سبد افزوده شد' : 'Added to Cart'}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="add"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                        {language === 'fa' ? 'افزودن به سبد' : 'Add to Cart'}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Button>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  variant="outline"
+                  className="w-full h-14 text-lg font-semibold border-2 border-gray-900 text-gray-900 hover:bg-gray-50"
+                >
+                  {language === 'fa' ? 'خرید سریع' : 'Buy Now'}
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Benefits */}
+            <div className="space-y-3 pt-6 border-t border-gray-200">
+              {[
+                { icon: Truck, text: language === 'fa' ? 'ارسال رایگان برای سفارشات بالای 500 دلار' : 'Free shipping on orders over $500' },
+                { icon: RotateCcw, text: language === 'fa' ? 'بازگشت آسان در مدت 30 روز' : 'Easy 30-day returns' },
+                { icon: Check, text: language === 'fa' ? 'تضمین کیفیت و اصالت' : 'Quality & authenticity guaranteed' }
+              ].map((benefit, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <benefit.icon className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                  <span className="text-sm text-gray-600">{benefit.text}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Product Details Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="mt-20"
+        >
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 h-14 bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger value="details" className="font-medium text-sm sm:text-base">
+                {language === 'fa' ? 'جزئیات' : 'Details'}
+              </TabsTrigger>
+              <TabsTrigger value="material" className="font-medium text-sm sm:text-base">
+                {language === 'fa' ? 'پارچه & مراقبت' : 'Material & Care'}
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="font-medium text-sm sm:text-base">
+                {language === 'fa' ? 'نظرات' : 'Reviews'} ({reviews.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details" className="mt-8">
+              <Card className="border-0 bg-gray-50 rounded-lg">
+                <CardContent className="p-8 space-y-6">
+                  <h3 className="text-h3 text-gray-900">{language === 'fa' ? 'درباره این محصول' : 'About This Item'}</h3>
+                  <p className="text-gray-700 leading-relaxed text-lg">{productDescription}</p>
+                  <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-200">
+                    <div>
+                      <p className="text-sm text-gray-600">{language === 'fa' ? 'برند' : 'Brand'}</p>
+                      <p className="font-medium text-gray-900">{product.brand}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">SKU</p>
+                      <p className="font-medium text-gray-900">{product.sku}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="material" className="mt-8">
+              <Card className="border-0 bg-gray-50 rounded-lg">
+                <CardContent className="p-8 space-y-6">
+                  <h3 className="text-h3 text-gray-900">{language === 'fa' ? 'پارچه و مراقبت' : 'Material & Care Instructions'}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3">{language === 'fa' ? 'ترکیب پارچه' : 'Material Composition'}</h4>
+                      <ul className="space-y-2 text-gray-700">
+                        <li className="flex items-center gap-2"><span className="text-gray-400">•</span> {language === 'fa' ? '۱۰۰% پنبه ارگانیک' : '100% Organic Cotton'}</li>
+                        <li className="flex items-center gap-2"><span className="text-gray-400">•</span> {language === 'fa' ? 'پائین خرابی‌نپذیر' : 'Preshrunk'}</li>
+                        <li className="flex items-center gap-2"><span className="text-gray-400">•</span> {language === 'fa' ? 'رنگ پایدار' : 'Colorfast'}</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3">{language === 'fa' ? 'نحوه شستشو' : 'Washing Instructions'}</h4>
+                      <ul className="space-y-2 text-gray-700 text-sm">
+                        <li className="flex items-center gap-2"><span className="text-gray-400">•</span> {language === 'fa' ? 'شستشوی آب سرد' : 'Wash in cold water'}</li>
+                        <li className="flex items-center gap-2"><span className="text-gray-400">•</span> {language === 'fa' ? 'برگردان پشت' : 'Turn inside out'}</li>
+                        <li className="flex items-center gap-2"><span className="text-gray-400">•</span> {language === 'fa' ? 'اتو کم' : 'Low heat dry'}</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="reviews" className="mt-8">
+              <Card className="border-0 bg-gray-50 rounded-lg">
+                <CardContent className="p-8 space-y-8">
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-h3 text-gray-900">{language === 'fa' ? 'نظرات مشتریان' : 'Customer Reviews'}</h3>
+                    <Button variant="outline" className="border-gray-900 text-gray-900 hover:bg-gray-100">
+                      {language === 'fa' ? 'افزودن نظر' : 'Write Review'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-6">
+                    {reviews.map((review) => (
+                      <motion.div
+                        key={review.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        viewport={{ once: true }}
+                        className="pb-6 border-b border-gray-200 last:border-b-0"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 font-semibold flex-shrink-0">
+                              {review.user_name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-gray-900">{review.user_name}</h4>
+                                {review.verified && (
+                                  <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                                    <Check className="w-3 h-3 mr-1" /> {language === 'fa' ? 'تایید' : 'Verified'}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">{review.date}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1 mb-3">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                        </div>
+
+                        <p className="text-gray-700 leading-relaxed">{review.comment}</p>
                       </motion.div>
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600">
-                    {product.rating} ({product.review_count} {language === 'fa' ? 'نظر' : 'reviews'})
-                  </span>
-                </motion.div>
-
-                {/* Price */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="flex items-center space-x-4"
-                >
-                  <span className="text-4xl font-bold text-gray-900">
-                    ${product.price}
-                  </span>
-                  {product.original_price && (
-                    <span className="text-xl text-gray-500 line-through">
-                      ${product.original_price}
-                    </span>
-                  )}
-                  {discount > 0 && (
-                    <motion.span 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.7, type: "spring" }}
-                      className="text-lg font-semibold text-green-600"
-                    >
-                      {language === 'fa' ? `${discount}% صرفه‌جویی` : `Save ${discount}%`}
-                    </motion.span>
-                  )}
-                </motion.div>
-
-                {/* Stock status */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex items-center space-x-2"
-                >
-                  <div className={`w-3 h-3 rounded-full ${
-                    product.stock_quantity > 10 ? 'bg-green-500' : 
-                    product.stock_quantity > 0 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`} />
-                  <span className={`font-medium ${
-                    product.stock_quantity > 10 ? 'text-green-600' : 
-                    product.stock_quantity > 0 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {product.stock_quantity > 10 
-                      ? (language === 'fa' ? 'موجود در انبار' : 'In Stock') 
-                      : product.stock_quantity > 0 
-                        ? (language === 'fa' ? `فقط ${product.stock_quantity} عدد باقی مانده` : `Only ${product.stock_quantity} left`)
-                        : (language === 'fa' ? 'ناموجود' : 'Out of Stock')
-                    }
-                  </span>
-                </motion.div>
-              </div>
-
-              {/* Quick description */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100"
-              >
-                <p className="text-gray-700 leading-relaxed">
-                  {productDescription}
-                </p>
-              </motion.div>
-
-              {/* Quantity and Add to Cart */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="space-y-6"
-              >
-                <div className="flex items-center space-x-4">
-                  <span className="font-medium text-gray-700">
-                    {language === 'fa' ? 'تعداد:' : 'Quantity:'}
-                  </span>
-                  <div className="flex items-center border border-gray-300 rounded-lg">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="p-2 hover:bg-gray-100 transition-colors"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </motion.button>
-                    <span className="px-4 py-2 min-w-[3rem] text-center font-semibold">
-                      {quantity}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="p-2 hover:bg-gray-100 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex-1"
-                  >
-                    <Button
-                      onClick={handleAddToCart}
-                      disabled={product.stock_quantity === 0}
-                      className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all relative overflow-hidden"
-                    >
-                      <AnimatePresence mode="wait">
-                        {addedToCart ? (
-                          <motion.div
-                            key="added"
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0 }}
-                            className="flex items-center space-x-2"
-                          >
-                            <Check className="w-5 h-5" />
-                            <span>{language === 'fa' ? 'افزوده شد!' : 'Added!'}</span>
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="add"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="flex items-center space-x-2"
-                          >
-                            <ShoppingCart className="w-5 h-5" />
-                            <span>{language === 'fa' ? 'افزودن به سبد' : 'Add to Cart'}</span>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </Button>
-                  </motion.div>
-
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button
-                      variant="outline"
-                      className="h-14 px-8 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-all"
-                    >
-                      {language === 'fa' ? 'خرید سریع' : 'Buy Now'}
-                    </Button>
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              {/* Features */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-              >
-                {[
-                  {
-                    icon: Truck,
-                    title: language === 'fa' ? 'ارسال رایگان' : 'Free Shipping',
-                    desc: language === 'fa' ? 'برای سفارشات بالای $500' : 'On orders over $500'
-                  },
-                  {
-                    icon: Shield,
-                    title: language === 'fa' ? 'ضمانت کیفیت' : 'Quality Guarantee',
-                    desc: language === 'fa' ? 'ضمانت 2 ساله' : '2 year warranty'
-                  },
-                  {
-                    icon: Zap,
-                    title: language === 'fa' ? 'نصب سریع' : 'Quick Install',
-                    desc: language === 'fa' ? 'راهنمای آسان' : 'Easy setup guide'
-                  }
-                ].map((feature, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 + index * 0.1 }}
-                    className="text-center p-4 rounded-lg bg-white/50 backdrop-blur-sm"
-                  >
-                    <feature.icon className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                    <h4 className="font-semibold text-gray-900">{feature.title}</h4>
-                    <p className="text-sm text-gray-600">{feature.desc}</p>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </motion.div>
-          </div>
-
-          {/* Tabs Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            className="mt-16"
-          >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 h-14 bg-white rounded-xl shadow-lg">
-                <TabsTrigger 
-                  value="description" 
-                  className="text-lg font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg transition-all"
-                >
-                  {language === 'fa' ? 'توضیحات' : 'Description'}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="specifications"
-                  className="text-lg font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg transition-all"
-                >
-                  {language === 'fa' ? 'مشخصات فنی' : 'Specifications'}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="reviews"
-                  className="text-lg font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg transition-all"
-                >
-                  {language === 'fa' ? 'نظرات' : 'Reviews'} ({reviews.length})
-                </TabsTrigger>
-              </TabsList>
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-8"
-                >
-                  <TabsContent value="description" className="space-y-6">
-                    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-                      <CardContent className="p-8">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                          {language === 'fa' ? 'درباره این محصول' : 'About This Product'}
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed text-lg">
-                          {productDescription}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="specifications" className="space-y-6">
-                    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-                      <CardContent className="p-8">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                          {language === 'fa' ? 'مشخصات فنی' : 'Technical Specifications'}
-                        </h3>
-                        <div className="space-y-4">
-                          {productSpecs.split('\n').slice(0, showFullSpecs ? undefined : 3).map((spec, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg"
-                            >
-                              <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-700">{spec}</span>
-                            </motion.div>
-                          ))}
-                          
-                          {productSpecs.split('\n').length > 3 && (
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => setShowFullSpecs(!showFullSpecs)}
-                              className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium"
-                            >
-                              <span>
-                                {showFullSpecs 
-                                  ? (language === 'fa' ? 'نمایش کمتر' : 'Show Less')
-                                  : (language === 'fa' ? 'نمایش بیشتر' : 'Show More')
-                                }
-                              </span>
-                              {showFullSpecs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </motion.button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="reviews" className="space-y-6">
-                    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-                      <CardContent className="p-8">
-                        <div className="flex justify-between items-center mb-6">
-                          <h3 className="text-2xl font-bold text-gray-900">
-                            {language === 'fa' ? 'نظرات کاربران' : 'Customer Reviews'}
-                          </h3>
-                          <Button variant="outline">
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            {language === 'fa' ? 'افزودن نظر' : 'Add Review'}
-                          </Button>
-                        </div>
-
-                        <div className="space-y-6">
-                          {reviews.map((review, index) => (
-                            <motion.div
-                              key={review.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="p-6 bg-gray-50 rounded-xl"
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                                    {review.user_name.charAt(0)}
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center space-x-2">
-                                      <h4 className="font-semibold text-gray-900">{review.user_name}</h4>
-                                      {review.verified && (
-                                        <Badge variant="outline" className="text-green-600 border-green-600">
-                                          <Check className="w-3 h-3 mr-1" />
-                                          {language === 'fa' ? 'تایید شده' : 'Verified'}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center space-x-1 mt-1">
-                                      {[...Array(5)].map((_, i) => (
-                                        <Star 
-                                          key={i}
-                                          className={`w-4 h-4 ${
-                                            i < review.rating 
-                                              ? 'text-yellow-400 fill-current' 
-                                              : 'text-gray-300'
-                                          }`} 
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                                <span className="text-sm text-gray-500">{review.date}</span>
-                              </div>
-                              <p className="text-gray-700 mb-3">{review.comment}</p>
-                              <div className="flex items-center space-x-4">
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors"
-                                >
-                                  <ThumbsUp className="w-4 h-4" />
-                                  <span className="text-sm">
-                                    {language === 'fa' ? 'مفید' : 'Helpful'}
-                                  </span>
-                                </motion.button>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </motion.div>
-              </AnimatePresence>
-            </Tabs>
-          </motion.div>
-        </div>
-      </motion.div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      </div>
     </div>
   );
 }
