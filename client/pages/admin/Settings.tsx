@@ -299,7 +299,11 @@ export default function AdminSettings() {
           transition={{ delay: 0.1 }}
         >
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-9 overflow-x-auto">
+              <TabsTrigger value="branding">
+                <Globe className="w-4 h-4 mr-2" />
+                {language === 'fa' ? 'برند' : 'Branding'}
+              </TabsTrigger>
               <TabsTrigger value="general">
                 <Globe className="w-4 h-4 mr-2" />
                 {language === 'fa' ? 'عمومی' : 'General'}
@@ -319,6 +323,10 @@ export default function AdminSettings() {
               <TabsTrigger value="crm">
                 <MessageSquare className="w-4 h-4 mr-2" />
                 {language === 'fa' ? 'CRM' : 'CRM'}
+              </TabsTrigger>
+              <TabsTrigger value="design">
+                <Palette className="w-4 h-4 mr-2" />
+                {language === 'fa' ? 'رنگ‌ها' : 'Design'}
               </TabsTrigger>
               <TabsTrigger value="features">
                 <Palette className="w-4 h-4 mr-2" />
