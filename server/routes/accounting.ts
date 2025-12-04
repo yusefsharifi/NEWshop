@@ -334,7 +334,7 @@ export const getJournalEntry: RequestHandler = (req, res) => {
           return res.status(500).json({ error: 'Failed to fetch journal entry lines' });
         }
 
-        res.json({ ...entry, lines });
+        res.json({ ...(entry as any), lines });
       }
     );
   });
