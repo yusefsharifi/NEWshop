@@ -6,6 +6,7 @@ const app = createServer();
 const port = process.env.PORT || 3000;
 
 // In production, serve the built SPA files
+// Using process.cwd() to avoid import.meta issues in some environments
 const distPath = path.join(process.cwd(), "dist/spa");
 
 // Serve static files
