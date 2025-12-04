@@ -13,6 +13,8 @@ import {
   ChevronDown,
   DollarSign,
   Warehouse,
+  Truck,
+  FileText,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -133,6 +135,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/admin/sales-crm",
           icon: BarChart3,
         },
+        {
+          name_en: "Distribution & Shipping",
+          name_fa: "ارسال و توزیع",
+          href: "/admin/distribution",
+          icon: Truck,
+        },
       ],
     },
     {
@@ -202,6 +210,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           name_fa: "صفحات فروشگاه",
           href: "/admin/store-pages",
           icon: BarChart3,
+        },
+        {
+          name_en: "Blog Management",
+          name_fa: "مدیریت بلاگ",
+          href: "/admin/blog",
+          icon: FileText,
         },
         {
           name_en: "SEO",

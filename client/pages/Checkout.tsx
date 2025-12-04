@@ -122,13 +122,57 @@ export default function Checkout() {
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     
-    // Simulate order processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Clear cart and redirect
-    clearCart();
-    navigate('/order-success');
-    setIsProcessing(false);
+    try {
+      // Prepare order data
+      const orderData = {
+        customer_name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+        customer_email: shippingInfo.email,
+        customer_phone: shippingInfo.phone,
+        shipping_address: shippingInfo.address,
+        city: shippingInfo.city,
+        state: shippingInfo.state,
+        zipCode: shippingInfo.zipCode,
+        country: shippingInfo.country,
+        payment_method: paymentInfo.method === 'card' ? 'Credit Card' : 
+                        paymentInfo.method === 'paypal' ? 'PayPal' : 'Bank Transfer',
+        items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price,
+        })),
+        subtotal: total,
+        tax: tax,
+        shipping_cost: shippingCost,
+        total_amount: finalTotal,
+      };
+
+      // Create order via API
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const result = await response.json();
+      
+      // Clear cart and redirect
+      clearCart();
+      navigate(`/order-success?order=${result.order_number}`);
+    } catch (error) {
+      console.error('Error placing order:', error);
+      alert(language === 'fa' 
+        ? 'خطا در ثبت سفارش. لطفا دوباره تلاش کنید.'
+        : 'Error placing order. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const containerVariants = {

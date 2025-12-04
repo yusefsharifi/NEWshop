@@ -62,6 +62,8 @@ export default function JournalEntries() {
   const { language, dir } = useLanguage();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [templates, setTemplates] = useState<VoucherTemplate[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('journal-entries');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -90,83 +92,51 @@ export default function JournalEntries() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
-    const sampleEntries: JournalEntry[] = [
-      {
-        id: 'je1',
-        entry_number: 'JE-2024-001',
-        entry_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-        posting_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-        journal_type: 'sales',
-        reference_number: 'INV-1001',
-        description: language === 'fa' ? 'صدور فاکتور فروش' : 'Sales Invoice Issuance',
-        lines: [
-          { line_number: 1, account_code: '1000', account_name: 'Cash & Equivalents', debit: 5000000, credit: 0 },
-          { line_number: 2, account_code: '4000', account_name: 'Sales Revenue', debit: 0, credit: 5000000 },
-        ],
-        total_debit: 5000000,
-        total_credit: 5000000,
-        status: 'posted',
-        posted_by: 'Admin',
-        posted_date: new Date(Date.now() - 86400000).toISOString(),
-        notes: '',
-        approval_required: false,
-        created_by: 'Admin',
-        created_date: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: 'je2',
-        entry_number: 'JE-2024-002',
-        entry_date: new Date(Date.now() - 172800000).toISOString().split('T')[0],
-        posting_date: new Date(Date.now() - 172800000).toISOString().split('T')[0],
-        journal_type: 'purchase',
-        reference_number: 'PO-2024-001',
-        description: language === 'fa' ? 'رسید خریداری' : 'Purchase Receipt',
-        lines: [
-          { line_number: 1, account_code: '1200', account_name: 'Inventory', debit: 2000000, credit: 0 },
-          { line_number: 2, account_code: '2000', account_name: 'Accounts Payable', debit: 0, credit: 2000000 },
-        ],
-        total_debit: 2000000,
-        total_credit: 2000000,
-        status: 'posted',
-        posted_by: 'Admin',
-        posted_date: new Date(Date.now() - 172800000).toISOString(),
-        notes: '',
-        approval_required: false,
-        created_by: 'Admin',
-        created_date: new Date(Date.now() - 172800000).toISOString(),
-      },
-      {
-        id: 'je3',
-        entry_number: 'JE-2024-003',
-        entry_date: new Date().toISOString().split('T')[0],
-        posting_date: '',
-        journal_type: 'general',
-        reference_number: '',
-        description: language === 'fa' ? 'دستور خودکار هزینه' : 'Automatic Expense Entry',
-        lines: [
-          { line_number: 1, account_code: '6000', account_name: 'Salaries & Wages', debit: 1500000, credit: 0, cost_center: 'Admin' },
-          { line_number: 2, account_code: '1000', account_name: 'Cash & Equivalents', debit: 0, credit: 1500000 },
-        ],
-        total_debit: 1500000,
-        total_credit: 1500000,
-        status: 'draft',
-        notes: language === 'fa' ? 'تجدید نظر در انتظار است' : 'Awaiting approval',
-        approval_required: true,
-        created_by: 'Admin',
-        created_date: new Date().toISOString(),
-      },
-    ];
-    setEntries(sampleEntries);
+    fetchJournalEntries();
+    fetchAccounts();
+  }, [filterStatus]);
 
-    const sampleTemplates: VoucherTemplate[] = [
-      { id: '1', name_en: 'Check Voucher', name_fa: 'سند چک', voucher_type: 'check', number_sequence: 'CHK-', last_number: 150, active: true },
-      { id: '2', name_en: 'Payment Voucher', name_fa: 'سند پرداخت', voucher_type: 'payment', number_sequence: 'PAY-', last_number: 75, active: true },
-      { id: '3', name_en: 'Receipt Voucher', name_fa: 'سند دریافت', voucher_type: 'receipt', number_sequence: 'RCP-', last_number: 200, active: true },
-      { id: '4', name_en: 'Debit Note', name_fa: 'سند بدهی', voucher_type: 'debit_note', number_sequence: 'DBN-', last_number: 30, active: true },
-      { id: '5', name_en: 'Credit Note', name_fa: 'سند اعتباری', voucher_type: 'credit_note', number_sequence: 'CBN-', last_number: 25, active: true },
-    ];
-    setTemplates(sampleTemplates);
-  }, [language]);
+  const fetchJournalEntries = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filterStatus !== 'all') {
+        params.append('status', filterStatus);
+      }
+
+      const response = await fetch(`/api/admin/journal-entries?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch journal entries');
+      const data = await response.json();
+      setEntries(data);
+    } catch (error) {
+      console.error('Error fetching journal entries:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch('/api/admin/accounts?status=active');
+      if (!response.ok) throw new Error('Failed to fetch accounts');
+      const data = await response.json();
+      setAccounts(data);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    }
+  };
+
+  const fetchJournalEntryDetails = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/journal-entries/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch journal entry details');
+      const data = await response.json();
+      setSelectedEntry(data);
+      setDetailsOpen(true);
+    } catch (error) {
+      console.error('Error fetching journal entry details:', error);
+    }
+  };
 
   const filtered = useMemo(() => {
     let result = entries;
@@ -204,53 +174,102 @@ export default function JournalEntries() {
     setCurrentLine({});
   };
 
-  const saveEntry = () => {
+  const saveEntry = async () => {
     if (!entryForm.entry_date || !entryForm.description || !entryForm.lines?.length) return;
-    if (entryForm.total_debit !== entryForm.total_credit) {
+    if (Math.abs((entryForm.total_debit || 0) - (entryForm.total_credit || 0)) > 0.01) {
       alert(language === 'fa' ? 'مجموع بدهکار و بستانکار برابر نیست' : 'Debit and credit totals do not match');
       return;
     }
 
-    if (editingEntry) {
-      setEntries(prev =>
-        prev.map(e => e.id === editingEntry.id ? { ...e, ...entryForm } as JournalEntry : e)
-      );
-    } else {
-      const newId = 'je' + (entries.length + 1);
-      const newEntryNumber = `JE-${new Date().getFullYear()}-${String(entries.length + 1).padStart(3, '0')}`;
-      setEntries([{
-        id: newId,
-        entry_number: newEntryNumber,
+    try {
+      const url = editingEntry
+        ? `/api/admin/journal-entries/${editingEntry.id}`
+        : '/api/admin/journal-entries';
+      const method = editingEntry ? 'PUT' : 'POST';
+
+      const payload = {
+        entry_date: entryForm.entry_date,
+        journal_type: entryForm.journal_type,
+        reference_number: entryForm.reference_number,
+        description: entryForm.description,
+        lines: entryForm.lines,
+        notes: entryForm.notes,
+        approval_required: entryForm.approval_required,
+        created_by: 'admin',
+      };
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save journal entry');
+      }
+
+      await fetchJournalEntries();
+      setEntryDialogOpen(false);
+      setEditingEntry(null);
+      setEntryForm({
+        entry_date: new Date().toISOString().split('T')[0],
+        journal_type: 'general',
         status: 'draft',
+        lines: [],
         approval_required: false,
-        created_by: 'Admin',
-        created_date: new Date().toISOString(),
-        ...entryForm,
-      } as JournalEntry, ...entries]);
+      });
+      setCurrentLine({});
+    } catch (error: any) {
+      console.error('Error saving journal entry:', error);
+      alert(language === 'fa' ? `خطا: ${error.message}` : `Error: ${error.message}`);
+    }
+  };
+
+  const postEntry = async (entryId: string) => {
+    if (!confirm(language === 'fa' ? 'آیا از ثبت این دفتر اطمینان دارید؟' : 'Are you sure you want to post this entry?')) {
+      return;
     }
 
-    setEntryDialogOpen(false);
-    setEditingEntry(null);
-    setEntryForm({
-      entry_date: new Date().toISOString().split('T')[0],
-      journal_type: 'general',
-      status: 'draft',
-      lines: [],
-      approval_required: false,
-    });
-    setCurrentLine({});
+    try {
+      const response = await fetch(`/api/admin/journal-entries/${entryId}/post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posted_by: 'admin' }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to post journal entry');
+      }
+
+      await fetchJournalEntries();
+    } catch (error: any) {
+      console.error('Error posting journal entry:', error);
+      alert(language === 'fa' ? `خطا: ${error.message}` : `Error: ${error.message}`);
+    }
   };
 
-  const postEntry = (entryId: string) => {
-    setEntries(prev =>
-      prev.map(e => e.id === entryId ? { ...e, status: 'posted', posted_by: 'Admin', posted_date: new Date().toISOString() } : e)
-    );
-  };
+  const voidEntry = async (entryId: string) => {
+    if (!confirm(language === 'fa' ? 'آیا از لغو این دفتر اطمینان دارید؟' : 'Are you sure you want to void this entry?')) {
+      return;
+    }
 
-  const voidEntry = (entryId: string) => {
-    setEntries(prev =>
-      prev.map(e => e.id === entryId ? { ...e, status: 'voided' } : e)
-    );
+    try {
+      const response = await fetch(`/api/admin/journal-entries/${entryId}/void`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to void journal entry');
+      }
+
+      await fetchJournalEntries();
+    } catch (error: any) {
+      console.error('Error voiding journal entry:', error);
+      alert(language === 'fa' ? `خطا: ${error.message}` : `Error: ${error.message}`);
+    }
   };
 
   const saveVoucher = () => {
@@ -363,22 +382,36 @@ export default function JournalEntries() {
                         <div className="space-y-3 border p-3 rounded-lg bg-gray-50">
                           <div className="grid grid-cols-5 gap-2">
                             <div>
-                              <Label className="text-xs">{language === 'fa' ? 'کد حساب' : 'Account'}</Label>
-                              <Input
-                                size={25}
+                              <Label className="text-xs">{language === 'fa' ? 'حساب' : 'Account'}</Label>
+                              <Select
                                 value={currentLine.account_code || ''}
-                                onChange={(e) => setCurrentLine({ ...currentLine, account_code: e.target.value })}
-                                placeholder="1000"
-                                className="text-xs"
-                              />
+                                onValueChange={(value) => {
+                                  const account = accounts.find((a: any) => a.code === value);
+                                  setCurrentLine({
+                                    ...currentLine,
+                                    account_code: value,
+                                    account_name: account ? (language === 'fa' ? account.name_fa : account.name_en) : '',
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="text-xs h-8">
+                                  <SelectValue placeholder={language === 'fa' ? 'انتخاب حساب' : 'Select account'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {accounts.map((account: any) => (
+                                    <SelectItem key={account.id} value={account.code}>
+                                      {account.code} - {language === 'fa' ? account.name_fa : account.name_en}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div>
-                              <Label className="text-xs">{language === 'fa' ? 'نام حساب' : 'Name'}</Label>
+                              <Label className="text-xs">{language === 'fa' ? 'نام حساب' : 'Account Name'}</Label>
                               <Input
                                 value={currentLine.account_name || ''}
-                                onChange={(e) => setCurrentLine({ ...currentLine, account_name: e.target.value })}
-                                placeholder={language === 'fa' ? 'نام' : 'Name'}
-                                className="text-xs"
+                                readOnly
+                                className="text-xs bg-gray-50"
                               />
                             </div>
                             <div>
@@ -499,7 +532,21 @@ export default function JournalEntries() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map(entry => (
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p className="mt-2 text-gray-600">{language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}</p>
+                          </TableCell>
+                        </TableRow>
+                      ) : filtered.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                            {language === 'fa' ? 'هیچ دفتری یافت نشد' : 'No journal entries found'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filtered.map(entry => (
                         <TableRow key={entry.id}>
                           <TableCell className="text-xs font-mono font-bold">{entry.entry_number}</TableCell>
                           <TableCell className="text-xs">{new Date(entry.entry_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
@@ -513,47 +560,19 @@ export default function JournalEntries() {
                           </TableCell>
                           <TableCell className="text-xs">
                             <div className="flex gap-1">
-                              <Dialog open={detailsOpen && selectedEntry?.id === entry.id} onOpenChange={(o) => { if (o) { setSelectedEntry(entry); setDetailsOpen(true); } else setDetailsOpen(false); }}>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-6 px-2"><Eye className="w-3 h-3" /></Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle className="text-sm">{selectedEntry?.entry_number}</DialogTitle>
-                                  </DialogHeader>
-                                  {selectedEntry && (
-                                    <div className="space-y-4">
-                                      <div className="grid grid-cols-2 gap-4 text-xs">
-                                        <div><strong>{language === 'fa' ? 'تاریخ' : 'Date'}:</strong> {new Date(selectedEntry.entry_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</div>
-                                        <div><strong>{language === 'fa' ? 'نوع' : 'Type'}:</strong> {selectedEntry.journal_type}</div>
-                                        <div><strong>{language === 'fa' ? 'وصف' : 'Description'}:</strong> {selectedEntry.description}</div>
-                                        <div><strong>{language === 'fa' ? 'وضعیت' : 'Status'}:</strong> <Badge className={statusColors[selectedEntry.status]}>{selectedEntry.status}</Badge></div>
-                                      </div>
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead className="text-xs">{language === 'fa' ? 'حساب' : 'Account'}</TableHead>
-                                            <TableHead className="text-xs text-right">{language === 'fa' ? 'بدهکار' : 'Debit'}</TableHead>
-                                            <TableHead className="text-xs text-right">{language === 'fa' ? 'بستانکار' : 'Credit'}</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {selectedEntry.lines.map((line, idx) => (
-                                            <TableRow key={idx}>
-                                              <TableCell className="text-xs">{line.account_code} - {line.account_name}</TableCell>
-                                              <TableCell className="text-xs text-right">{line.debit > 0 ? formatCurrencyIRR(line.debit) : '-'}</TableCell>
-                                              <TableCell className="text-xs text-right">{line.credit > 0 ? formatCurrencyIRR(line.credit) : '-'}</TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  )}
-                                </DialogContent>
-                              </Dialog>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-6 px-2"
+                                onClick={() => {
+                                  fetchJournalEntryDetails(String(entry.id));
+                                }}
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
                               {entry.status === 'draft' && (
                                 <>
-                                  <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => postEntry(entry.id)} title={language === 'fa' ? 'ثبت دفتر' : 'Post'}>
+                                  <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => postEntry(String(entry.id))} title={language === 'fa' ? 'ثبت دفتر' : 'Post'}>
                                     <Check className="w-3 h-3 text-green-600" />
                                   </Button>
                                   <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => { setEditingEntry(entry); setEntryForm(entry); setEntryDialogOpen(true); }}>
@@ -562,19 +581,57 @@ export default function JournalEntries() {
                                 </>
                               )}
                               {entry.status === 'posted' && (
-                                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => voidEntry(entry.id)}>
+                                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => voidEntry(String(entry.id))}>
                                   <X className="w-3 h-3 text-red-600" />
                                 </Button>
                               )}
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Journal Entry Details Dialog */}
+            <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-sm">{selectedEntry?.entry_number}</DialogTitle>
+                </DialogHeader>
+                {selectedEntry && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div><strong>{language === 'fa' ? 'تاریخ' : 'Date'}:</strong> {new Date(selectedEntry.entry_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</div>
+                      <div><strong>{language === 'fa' ? 'نوع' : 'Type'}:</strong> {selectedEntry.journal_type}</div>
+                      <div><strong>{language === 'fa' ? 'وصف' : 'Description'}:</strong> {selectedEntry.description}</div>
+                      <div><strong>{language === 'fa' ? 'وضعیت' : 'Status'}:</strong> <Badge className={statusColors[selectedEntry.status]}>{selectedEntry.status}</Badge></div>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">{language === 'fa' ? 'حساب' : 'Account'}</TableHead>
+                          <TableHead className="text-xs text-right">{language === 'fa' ? 'بدهکار' : 'Debit'}</TableHead>
+                          <TableHead className="text-xs text-right">{language === 'fa' ? 'بستانکار' : 'Credit'}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedEntry.lines && selectedEntry.lines.map((line: any, idx: number) => (
+                          <TableRow key={idx}>
+                            <TableCell className="text-xs">{line.account_code} - {line.account_name}</TableCell>
+                            <TableCell className="text-xs text-right">{line.debit > 0 ? formatCurrencyIRR(line.debit) : '-'}</TableCell>
+                            <TableCell className="text-xs text-right">{line.credit > 0 ? formatCurrencyIRR(line.credit) : '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="voucher-templates">

@@ -26,9 +26,11 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inventorySummary, setInventorySummary] = useState<Record<number, { total: number; warehouses: Record<string, number> }>>({});
 
   useEffect(() => {
     fetchProducts();
+    fetchInventorySummary();
   }, []);
 
   const fetchProducts = async () => {
@@ -40,6 +42,28 @@ export default function AdminProducts() {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchInventorySummary = async () => {
+    try {
+      const response = await fetch('/api/admin/inventory/items');
+      if (!response.ok) throw new Error('Failed to fetch inventory snapshot');
+      const data = await response.json();
+      const summary = data.reduce((acc: Record<number, { total: number; warehouses: Record<string, number> }>, item: any) => {
+        const productId = item.product_id;
+        if (!acc[productId]) {
+          acc[productId] = { total: 0, warehouses: {} };
+        }
+        const qty = item.stock_on_hand || 0;
+        acc[productId].total += qty;
+        const warehouseName = item.warehouse_name || 'Warehouse';
+        acc[productId].warehouses[warehouseName] = (acc[productId].warehouses[warehouseName] || 0) + qty;
+        return acc;
+      }, {});
+      setInventorySummary(summary);
+    } catch (error) {
+      console.error('Error fetching inventory summary:', error);
     }
   };
 
@@ -130,40 +154,52 @@ export default function AdminProducts() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((product) => (
-                      <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
-                            <img
-                              src={product.image_url}
-                              alt={language === 'fa' ? product.name_fa : product.name_en}
-                              className="w-12 h-12 rounded-lg object-cover"
-                            />
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {language === 'fa' ? product.name_fa : product.name_en}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {language === 'fa' ? product.category_name_fa : product.category_name_en}
+                    {filteredProducts.map((product) => {
+                      const summary = inventorySummary[product.id];
+                      const stockLevel = summary ? summary.total : product.stock_quantity;
+                      const stockClass =
+                        stockLevel > 10
+                          ? 'bg-green-100 text-green-800'
+                          : stockLevel > 0
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800';
+                      return (
+                        <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-4 px-4">
+                            <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
+                              <img
+                                src={product.image_url}
+                                alt={language === 'fa' ? product.name_fa : product.name_en}
+                                className="w-12 h-12 rounded-lg object-cover"
+                              />
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {language === 'fa' ? product.name_fa : product.name_en}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {language === 'fa' ? product.category_name_fa : product.category_name_en}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="font-medium text-gray-900">${product.price}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            product.stock_quantity > 10 
-                              ? 'bg-green-100 text-green-800' 
-                              : product.stock_quantity > 0 
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                          }`}>
-                            {product.stock_quantity} units
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="font-medium text-gray-900">${product.price}</span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="space-y-1">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${stockClass}`}>
+                                {stockLevel} {language === 'fa' ? 'واحد' : 'units'}
+                              </span>
+                              {summary && (
+                                <div className="text-[11px] text-gray-500">
+                                  {Object.entries(summary.warehouses)
+                                    .map(([warehouse, qty]) => `${warehouse}: ${qty}`)
+                                    .join(' • ')}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
                           <div className="flex items-center space-x-2">
                             <Badge variant={product.is_active ? 'default' : 'secondary'}>
                               {product.is_active ? 'Active' : 'Inactive'}
@@ -174,8 +210,8 @@ export default function AdminProducts() {
                               </Badge>
                             )}
                           </div>
-                        </td>
-                        <td className="py-4 px-4">
+                          </td>
+                          <td className="py-4 px-4">
                           <div className={`flex items-center ${dir === 'rtl' ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
                             <Link to={`/admin/products/${product.id}/edit`}>
                               <Button variant="ghost" size="sm">
@@ -191,9 +227,10 @@ export default function AdminProducts() {
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

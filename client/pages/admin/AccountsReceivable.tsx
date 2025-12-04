@@ -13,47 +13,58 @@ import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AdminLayout from '@/components/AdminLayout';
 import { formatCurrencyIRR } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Eye, Send, Download, AlertTriangle, Clock, CheckCircle, XCircle, FileText, TrendingUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Download, AlertTriangle, Clock, CheckCircle, XCircle, FileText, TrendingUp } from 'lucide-react';
 
 interface InvoiceLineItem {
-  line_number: number;
+  id?: number;
+  ar_invoice_id?: number;
+  product_id?: number;
   description: string;
   quantity: number;
   unit_price: number;
   tax_rate: number;
+  tax_amount: number;
   line_total: number;
 }
 
 interface Invoice {
-  id: string;
+  id: number;
   invoice_number: string;
-  customer_id: number;
+  order_id?: number;
+  invoice_id?: number;
+  order_number?: string;
+  original_invoice_number?: string;
   customer_name: string;
+  customer_email?: string;
+  customer_phone?: string;
   invoice_date: string;
   due_date: string;
-  line_items: InvoiceLineItem[];
+  items: InvoiceLineItem[];
   subtotal: number;
   tax_amount: number;
+  shipping_cost: number;
+  discount_amount: number;
   total_amount: number;
   paid_amount: number;
-  balance_due: number;
-  status: 'draft' | 'sent' | 'viewed' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
-  payment_terms: string;
+  balance_amount: number;
+  status: 'draft' | 'sent' | 'partial' | 'paid' | 'overdue' | 'cancelled';
+  payment_terms?: string;
   notes?: string;
-  created_date: string;
-  sent_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  payments?: Payment[];
 }
 
 interface Payment {
-  id: string;
-  invoice_id: string;
-  invoice_number: string;
+  id: number;
+  payment_number: string;
+  ar_invoice_id: number;
   payment_date: string;
-  amount: number;
-  payment_method: 'check' | 'bank_transfer' | 'credit_card' | 'cash' | 'other';
+  payment_method: 'cash' | 'bank_transfer' | 'check' | 'credit_card';
+  payment_amount: number;
   reference_number?: string;
   notes?: string;
-  recorded_date: string;
+  created_at?: string;
 }
 
 interface Customer {
@@ -76,203 +87,130 @@ export default function AccountsReceivable() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('invoices');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-
-  // Invoice Dialog
-  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
-  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [invoiceForm, setInvoiceForm] = useState<Partial<Invoice>>({
-    invoice_date: new Date().toISOString().split('T')[0],
-    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    line_items: [],
-    status: 'draft',
-    payment_terms: 'Net 30',
-  });
+  const [loading, setLoading] = useState(false);
+  const [agingData, setAgingData] = useState<any[]>([]);
 
   // Payment Dialog
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [paymentForm, setPaymentForm] = useState<Partial<Payment>>({
+  const [paymentForm, setPaymentForm] = useState<{
+    payment_date?: string;
+    payment_method?: 'cash' | 'bank_transfer' | 'check' | 'credit_card';
+    amount?: number;
+    reference_number?: string;
+    notes?: string;
+  }>({
     payment_date: new Date().toISOString().split('T')[0],
     payment_method: 'bank_transfer',
   });
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
 
+  // Fetch AR Invoices
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (search) params.append('search', search);
+      
+      const response = await fetch(`/api/admin/ar/invoices?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch invoices');
+      const data = await response.json();
+      setInvoices(data);
+      
+      // Extract all payments from invoices
+      const allPayments: Payment[] = [];
+      data.forEach((inv: Invoice) => {
+        if (inv.payments) {
+          allPayments.push(...inv.payments);
+        }
+      });
+      setPayments(allPayments);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Aging Report
+  const fetchAging = async () => {
+    try {
+      const response = await fetch('/api/admin/ar/aging');
+      if (!response.ok) throw new Error('Failed to fetch aging report');
+      const data = await response.json();
+      setAgingData(data);
+    } catch (error) {
+      console.error('Error fetching aging report:', error);
+    }
+  };
+
   useEffect(() => {
-    const sampleCustomers: Customer[] = [
-      { id: 1, name: 'Aqua Solutions Inc', email: 'info@aqua.com', phone: '+1-555-1001', address: '123 Water St', credit_limit: 50000000, current_due: 3500000, total_invoiced: 18000000, status: 'active' },
-      { id: 2, name: 'Pool Perfect LLC', email: 'sales@poolperfect.com', phone: '+1-555-1002', address: '456 Pool Ave', credit_limit: 30000000, current_due: 1200000, total_invoiced: 12000000, status: 'active' },
-      { id: 3, name: 'Splash Technologies', email: 'contact@splash.com', phone: '+1-555-1003', address: '789 Swim Rd', credit_limit: 40000000, current_due: 2800000, total_invoiced: 15000000, status: 'active' },
-    ];
-    setCustomers(sampleCustomers);
+    fetchInvoices();
+    fetchAging();
+  }, [filterStatus]);
 
-    const sampleInvoices: Invoice[] = [
-      {
-        id: 'inv1',
-        invoice_number: 'INV-2024-001',
-        customer_id: 1,
-        customer_name: 'Aqua Solutions Inc',
-        invoice_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        line_items: [
-          { line_number: 1, description: 'Pool Pump XL', quantity: 5, unit_price: 1200000, tax_rate: 9, line_total: 6540000 },
-          { line_number: 2, description: 'Installation Service', quantity: 1, unit_price: 500000, tax_rate: 9, line_total: 545000 },
-        ],
-        subtotal: 6700000,
-        tax_amount: 603000,
-        total_amount: 7303000,
-        paid_amount: 2000000,
-        balance_due: 5303000,
-        status: 'partially_paid',
-        payment_terms: 'Net 30',
-        created_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-        sent_date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'inv2',
-        invoice_number: 'INV-2024-002',
-        customer_id: 2,
-        customer_name: 'Pool Perfect LLC',
-        invoice_date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        due_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        line_items: [
-          { line_number: 1, description: 'Sand Filter 200', quantity: 3, unit_price: 750000, tax_rate: 9, line_total: 2452500 },
-        ],
-        subtotal: 2250000,
-        tax_amount: 202500,
-        total_amount: 2452500,
-        paid_amount: 0,
-        balance_due: 2452500,
-        status: 'overdue',
-        payment_terms: 'Net 30',
-        created_date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-        sent_date: new Date(Date.now() - 44 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'inv3',
-        invoice_number: 'INV-2024-003',
-        customer_id: 3,
-        customer_name: 'Splash Technologies',
-        invoice_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        line_items: [
-          { line_number: 1, description: 'LED Pool Lights RGB', quantity: 10, unit_price: 500000, tax_rate: 9, line_total: 5450000 },
-        ],
-        subtotal: 5000000,
-        tax_amount: 450000,
-        total_amount: 5450000,
-        paid_amount: 0,
-        balance_due: 5450000,
-        status: 'sent',
-        payment_terms: 'Net 30',
-        created_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        sent_date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ];
-    setInvoices(sampleInvoices);
-
-    const samplePayments: Payment[] = [
-      { id: 'pay1', invoice_id: 'inv1', invoice_number: 'INV-2024-001', payment_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], amount: 2000000, payment_method: 'bank_transfer', reference_number: 'WIRE-001', recorded_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-    ];
-    setPayments(samplePayments);
-  }, [language]);
+  useEffect(() => {
+    // Debounce search
+    const timer = setTimeout(() => {
+      fetchInvoices();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const filtered = useMemo(() => {
-    let result = invoices;
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(i =>
-        i.invoice_number.toLowerCase().includes(q) ||
-        i.customer_name.toLowerCase().includes(q)
-      );
-    }
-    if (filterStatus !== 'all') {
-      result = result.filter(i => i.status === filterStatus);
-    }
-    return result.sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime());
-  }, [invoices, search, filterStatus]);
+    return invoices.sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime());
+  }, [invoices]);
 
   const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.total_amount, 0);
-  const totalPaid = invoices.reduce((sum, inv) => sum + inv.paid_amount, 0);
-  const totalDue = invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
-  const overdue = invoices.filter(i => i.status === 'overdue').reduce((sum, inv) => sum + inv.balance_due, 0);
+  const totalPaid = invoices.reduce((sum, inv) => sum + (inv.paid_amount || 0), 0);
+  const totalDue = invoices.reduce((sum, inv) => sum + inv.balance_amount, 0);
+  const overdue = invoices.filter(i => i.status === 'overdue').reduce((sum, inv) => sum + inv.balance_amount, 0);
 
   const statusColors: Record<string, string> = {
     draft: 'bg-gray-500',
     sent: 'bg-blue-500',
-    viewed: 'bg-cyan-500',
-    partially_paid: 'bg-yellow-500',
+    partial: 'bg-yellow-500',
     paid: 'bg-green-500',
     overdue: 'bg-red-500',
     cancelled: 'bg-gray-500',
   };
 
-  const saveInvoice = () => {
-    if (!invoiceForm.customer_id || !invoiceForm.line_items?.length) return;
-    
-    if (editingInvoice) {
-      setInvoices(prev => prev.map(i => i.id === editingInvoice.id ? { ...i, ...invoiceForm } as Invoice : i));
-    } else {
-      const newId = 'inv' + (invoices.length + 1);
-      const newNumber = `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(3, '0')}`;
-      setInvoices([{
-        id: newId,
-        invoice_number: newNumber,
-        status: 'draft',
-        created_date: new Date().toISOString(),
-        ...invoiceForm,
-      } as Invoice, ...invoices]);
-    }
-    setInvoiceDialogOpen(false);
-    setEditingInvoice(null);
-    setInvoiceForm({
-      invoice_date: new Date().toISOString().split('T')[0],
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      line_items: [],
-      status: 'draft',
-      payment_terms: 'Net 30',
-    });
-  };
-
-  const recordPayment = () => {
+  const recordPayment = async () => {
     if (!selectedInvoiceForPayment || !paymentForm.amount || paymentForm.amount <= 0) return;
     
-    const newPayment: Payment = {
-      id: 'pay' + (payments.length + 1),
-      invoice_id: selectedInvoiceForPayment.id,
-      invoice_number: selectedInvoiceForPayment.invoice_number,
-      payment_date: paymentForm.payment_date || new Date().toISOString().split('T')[0],
-      amount: paymentForm.amount || 0,
-      payment_method: paymentForm.payment_method || 'bank_transfer',
-      reference_number: paymentForm.reference_number,
-      notes: paymentForm.notes,
-      recorded_date: new Date().toISOString(),
-    };
-    setPayments([newPayment, ...payments]);
+    try {
+      const response = await fetch('/api/admin/ar/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ar_invoice_id: selectedInvoiceForPayment.id,
+          payment_date: paymentForm.payment_date || new Date().toISOString().split('T')[0],
+          payment_method: paymentForm.payment_method || 'bank_transfer',
+          payment_amount: paymentForm.amount,
+          reference_number: paymentForm.reference_number,
+          notes: paymentForm.notes,
+        }),
+      });
 
-    // Update invoice
-    setInvoices(prev => prev.map(inv => 
-      inv.id === selectedInvoiceForPayment.id 
-        ? {
-            ...inv,
-            paid_amount: inv.paid_amount + (paymentForm.amount || 0),
-            balance_due: inv.balance_due - (paymentForm.amount || 0),
-            status: inv.balance_due - (paymentForm.amount || 0) === 0 ? 'paid' : 'partially_paid'
-          }
-        : inv
-    ));
+      if (!response.ok) throw new Error('Failed to record payment');
+      
+      // Refresh invoices
+      await fetchInvoices();
+      await fetchAging();
 
-    setPaymentDialogOpen(false);
-    setSelectedInvoiceForPayment(null);
-    setPaymentForm({
-      payment_date: new Date().toISOString().split('T')[0],
-      payment_method: 'bank_transfer',
-    });
+      setPaymentDialogOpen(false);
+      setSelectedInvoiceForPayment(null);
+      setPaymentForm({
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_method: 'bank_transfer',
+        amount: undefined,
+      });
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert(language === 'fa' ? 'خطا در ثبت پرداخت' : 'Error recording payment');
+    }
   };
 
-  const sendInvoice = (invoiceId: string) => {
-    setInvoices(prev => prev.map(i => 
-      i.id === invoiceId ? { ...i, status: 'sent', sent_date: new Date().toISOString() } : i
-    ));
-  };
 
   return (
     <AdminLayout>
@@ -323,58 +261,6 @@ export default function AccountsReceivable() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> {language === 'fa' ? 'فاکتورها' : 'Invoices'}</CardTitle>
-                <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm"><Plus className="w-4 h-4 mr-2" /> {language === 'fa' ? 'فاکتور جدید' : 'New Invoice'}</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>{editingInvoice ? (language === 'fa' ? 'ویرایش فاکتور' : 'Edit Invoice') : (language === 'fa' ? 'فاکتور جدید' : 'New Invoice')}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-sm">{language === 'fa' ? 'مشتری' : 'Customer'}</Label>
-                          <Select value={String(invoiceForm.customer_id || '')} onValueChange={(v) => {
-                            const cust = customers.find(c => c.id === parseInt(v));
-                            setInvoiceForm({ ...invoiceForm, customer_id: parseInt(v), customer_name: cust?.name });
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {customers.map(c => (
-                                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-sm">{language === 'fa' ? 'شرایط پرداخت' : 'Payment Terms'}</Label>
-                          <Input value={invoiceForm.payment_terms || ''} onChange={(e) => setInvoiceForm({ ...invoiceForm, payment_terms: e.target.value })} />
-                        </div>
-                        <div>
-                          <Label className="text-sm">{language === 'fa' ? 'تاریخ فاکتور' : 'Invoice Date'}</Label>
-                          <Input type="date" value={invoiceForm.invoice_date || ''} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoice_date: e.target.value })} />
-                        </div>
-                        <div>
-                          <Label className="text-sm">{language === 'fa' ? 'تاریخ سررسید' : 'Due Date'}</Label>
-                          <Input type="date" value={invoiceForm.due_date || ''} onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm">{language === 'fa' ? 'توضیحات' : 'Notes'}</Label>
-                        <Textarea value={invoiceForm.notes || ''} onChange={(e) => setInvoiceForm({ ...invoiceForm, notes: e.target.value })} />
-                      </div>
-
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => { setInvoiceDialogOpen(false); setEditingInvoice(null); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                        <Button onClick={saveInvoice}>{language === 'fa' ? 'ذخیره' : 'Save'}</Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-4">
@@ -418,17 +304,12 @@ export default function AccountsReceivable() {
                           <TableCell className="text-xs">{new Date(inv.due_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
                           <TableCell className="text-xs text-right">{formatCurrencyIRR(inv.total_amount)}</TableCell>
                           <TableCell className="text-xs text-right text-green-700 font-semibold">{formatCurrencyIRR(inv.paid_amount)}</TableCell>
-                          <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(inv.balance_due)}</TableCell>
+                          <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(inv.balance_amount)}</TableCell>
                           <TableCell className="text-xs">
                             <Badge className={statusColors[inv.status]}>{inv.status}</Badge>
                           </TableCell>
                           <TableCell className="text-xs">
                             <div className="flex gap-1">
-                              {inv.status === 'draft' && (
-                                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => sendInvoice(inv.id)} title={language === 'fa' ? 'فرستادن' : 'Send'}>
-                                  <Send className="w-3 h-3" />
-                                </Button>
-                              )}
                               {inv.status !== 'paid' && inv.status !== 'cancelled' && (
                                 <Dialog open={paymentDialogOpen && selectedInvoiceForPayment?.id === inv.id} onOpenChange={(o) => { if (o) { setSelectedInvoiceForPayment(inv); setPaymentDialogOpen(true); } else setPaymentDialogOpen(false); }}>
                                   <DialogTrigger asChild>
@@ -444,7 +325,7 @@ export default function AccountsReceivable() {
                                     <div className="space-y-4">
                                       <div>
                                         <Label className="text-xs">{language === 'fa' ? 'مبلغ' : 'Amount'}</Label>
-                                        <Input type="number" value={paymentForm.amount || ''} onChange={(e) => setPaymentForm({ ...paymentForm, amount: parseFloat(e.target.value) })} max={inv.balance_due} />
+                                        <Input type="number" value={paymentForm.amount || ''} onChange={(e) => setPaymentForm({ ...paymentForm, amount: parseFloat(e.target.value) || 0 })} max={inv.balance_amount} />
                                       </div>
                                       <div>
                                         <Label className="text-xs">{language === 'fa' ? 'روش پرداخت' : 'Payment Method'}</Label>
@@ -501,15 +382,18 @@ export default function AccountsReceivable() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {payments.map(pay => (
-                        <TableRow key={pay.id}>
-                          <TableCell className="text-xs">{new Date(pay.payment_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
-                          <TableCell className="text-xs font-mono">{pay.invoice_number}</TableCell>
-                          <TableCell className="text-xs font-bold text-green-700">{formatCurrencyIRR(pay.amount)}</TableCell>
-                          <TableCell className="text-xs">{pay.payment_method}</TableCell>
-                          <TableCell className="text-xs">{pay.reference_number || '-'}</TableCell>
-                        </TableRow>
-                      ))}
+                      {payments.map(pay => {
+                        const invoice = invoices.find(inv => inv.id === pay.ar_invoice_id);
+                        return (
+                          <TableRow key={pay.id}>
+                            <TableCell className="text-xs">{new Date(pay.payment_date).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
+                            <TableCell className="text-xs font-mono">{invoice?.invoice_number || pay.ar_invoice_id}</TableCell>
+                            <TableCell className="text-xs font-bold text-green-700">{formatCurrencyIRR(pay.payment_amount)}</TableCell>
+                            <TableCell className="text-xs">{pay.payment_method}</TableCell>
+                            <TableCell className="text-xs">{pay.reference_number || '-'}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -532,29 +416,24 @@ export default function AccountsReceivable() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow className="bg-green-50">
-                      <TableCell className="text-xs font-medium">{language === 'fa' ? 'جاری (0-30 روز)' : 'Current (0-30 days)'}</TableCell>
-                      <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(invoices.filter(i => new Date(i.due_date) > new Date()).reduce((sum, i) => sum + i.balance_due, 0))}</TableCell>
-                      <TableCell className="text-xs text-right">{((invoices.filter(i => new Date(i.due_date) > new Date()).reduce((sum, i) => sum + i.balance_due, 0) / totalDue) * 100).toFixed(1)}%</TableCell>
-                    </TableRow>
-                    <TableRow className="bg-yellow-50">
-                      <TableCell className="text-xs font-medium">{language === 'fa' ? '31-60 روز' : '31-60 days'}</TableCell>
-                      <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(invoices.filter(i => {
-                        const days = (new Date().getTime() - new Date(i.due_date).getTime()) / (1000 * 60 * 60 * 24);
-                        return days > 30 && days <= 60;
-                      }).reduce((sum, i) => sum + i.balance_due, 0))}</TableCell>
-                      <TableCell className="text-xs text-right">0%</TableCell>
-                    </TableRow>
-                    <TableRow className="bg-orange-50">
-                      <TableCell className="text-xs font-medium">{language === 'fa' ? '61-90 روز' : '61-90 days'}</TableCell>
-                      <TableCell className="text-xs text-right font-bold">0</TableCell>
-                      <TableCell className="text-xs text-right">0%</TableCell>
-                    </TableRow>
-                    <TableRow className="bg-red-50">
-                      <TableCell className="text-xs font-medium">{language === 'fa' ? 'بیش از 90 روز' : 'Over 90 days'}</TableCell>
-                      <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(invoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + i.balance_due, 0))}</TableCell>
-                      <TableCell className="text-xs text-right">{((invoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + i.balance_due, 0) / totalDue) * 100).toFixed(1)}%</TableCell>
-                    </TableRow>
+                    {agingData.length > 0 ? (
+                      <>
+                        <TableRow className="bg-green-50">
+                          <TableCell className="text-xs font-medium">{language === 'fa' ? 'جاری (0-30 روز)' : 'Current (0-30 days)'}</TableCell>
+                          <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(agingData.filter((a: any) => a.aging_category === 'current').reduce((sum: number, a: any) => sum + a.balance_amount, 0))}</TableCell>
+                          <TableCell className="text-xs text-right">{totalDue > 0 ? ((agingData.filter((a: any) => a.aging_category === 'current').reduce((sum: number, a: any) => sum + a.balance_amount, 0) / totalDue) * 100).toFixed(1) : 0}%</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-red-50">
+                          <TableCell className="text-xs font-medium">{language === 'fa' ? 'سررسید شده' : 'Overdue'}</TableCell>
+                          <TableCell className="text-xs text-right font-bold">{formatCurrencyIRR(agingData.filter((a: any) => a.aging_category === 'overdue').reduce((sum: number, a: any) => sum + a.balance_amount, 0))}</TableCell>
+                          <TableCell className="text-xs text-right">{totalDue > 0 ? ((agingData.filter((a: any) => a.aging_category === 'overdue').reduce((sum: number, a: any) => sum + a.balance_amount, 0) / totalDue) * 100).toFixed(1) : 0}%</TableCell>
+                        </TableRow>
+                      </>
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-xs text-center text-gray-500">{language === 'fa' ? 'داده‌ای یافت نشد' : 'No data found'}</TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>

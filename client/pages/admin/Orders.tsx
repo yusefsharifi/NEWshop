@@ -36,67 +36,14 @@ export default function AdminOrders() {
 
   const fetchOrders = async () => {
     try {
-      // Simulate API call with mock data
-      setTimeout(() => {
-        const mockOrders: Order[] = [
-          {
-            id: 1,
-            order_number: 'ORD-2024-001',
-            customer_name: 'احمد حسینی',
-            customer_email: 'ahmad@example.com',
-            customer_phone: '+98 912 345 6789',
-            total_amount: 1299,
-            status: 'processing',
-            payment_status: 'paid',
-            payment_method: 'Credit Card',
-            created_at: '2024-01-15T10:30:00Z',
-            items_count: 2
-          },
-          {
-            id: 2,
-            order_number: 'ORD-2024-002',
-            customer_name: 'فاطمه احمدی',
-            customer_email: 'fateme@example.com',
-            customer_phone: '+98 911 234 5678',
-            total_amount: 849,
-            status: 'shipped',
-            payment_status: 'paid',
-            payment_method: 'Bank Transfer',
-            created_at: '2024-01-14T15:45:00Z',
-            items_count: 1
-          },
-          {
-            id: 3,
-            order_number: 'ORD-2024-003',
-            customer_name: 'علی رضایی',
-            customer_email: 'ali@example.com',
-            customer_phone: '+98 913 456 7890',
-            total_amount: 379,
-            status: 'pending',
-            payment_status: 'pending',
-            payment_method: 'Cash on Delivery',
-            created_at: '2024-01-13T09:20:00Z',
-            items_count: 1
-          },
-          {
-            id: 4,
-            order_number: 'ORD-2024-004',
-            customer_name: 'مریم نوری',
-            customer_email: 'maryam@example.com',
-            customer_phone: '+98 914 567 8901',
-            total_amount: 599,
-            status: 'delivered',
-            payment_status: 'paid',
-            payment_method: 'Credit Card',
-            created_at: '2024-01-12T14:10:00Z',
-            items_count: 3
-          }
-        ];
-        setOrders(mockOrders);
-        setLoading(false);
-      }, 1000);
+      setLoading(true);
+      const response = await fetch('/api/admin/orders');
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      const data = await response.json();
+      setOrders(data);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    } finally {
       setLoading(false);
     }
   };

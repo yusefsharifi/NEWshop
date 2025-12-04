@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,47 +11,82 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useToast } from '@/components/ui/use-toast';
 import AdminLayout from '@/components/AdminLayout';
 import { formatCurrencyIRR } from '@/lib/utils';
 import { Package, Plus, Minus, AlertTriangle, RefreshCcw, ClipboardList, TrendingUp, TrendingDown, Warehouse, FileText, BarChart3, Eye, Edit2, Download, QrCode, Users, Zap, CheckCircle, Truck, PieChart, Target, RotateCcw } from 'lucide-react';
 
 interface InventoryItem {
   id: number;
+  product_id: number;
+  warehouse_id: number;
   sku: string;
   barcode?: string;
   name_en: string;
   name_fa: string;
-  stock: number;
-  reserved: number;
+  stock_on_hand: number;
+  reserved_quantity: number;
+  incoming_quantity: number;
+  damaged_quantity: number;
   reorder_level: number;
-  incoming: number;
-  location?: string;
-  category?: string;
-  unit_cost?: number;
-  unit_price?: number;
-  expiry_date?: string;
-  batch?: string;
-  warehouse?: string;
+  safety_stock: number;
+  average_unit_cost: number;
+  warehouse_code: string;
+  warehouse_name: string;
+  available_quantity: number;
   abc_class?: 'A' | 'B' | 'C';
-  supplier_id?: number;
-  lead_time_days?: number;
   defect_rate?: number;
   last_count_date?: string;
 }
 
 interface StockMovement {
-  id: string;
-  sku: string;
-  productId: number;
-  type: 'in' | 'out' | 'adjustment' | 'transfer' | 'damage' | 'return';
+  id: number;
+  product_id: number;
+  warehouse_id: number;
+  direction: 'inbound' | 'outbound';
+  movement_type: string;
   quantity: number;
+  reference_type?: string;
+  reference_code?: string;
   note?: string;
-  reference?: string;
-  from_location?: string;
-  to_location?: string;
   unit_cost?: number;
-  createdAt: string;
-  createdBy?: string;
+  created_at: string;
+  created_by?: string;
+  warehouse_name?: string;
+  warehouse_code?: string;
+  name_en: string;
+  name_fa: string;
+  sku: string;
+}
+
+interface InventoryReturn {
+  id: number;
+  product_id: number;
+  warehouse_id: number;
+  quantity: number;
+  source: string;
+  reason?: string;
+  reference_code?: string;
+  status: string;
+  disposition: string;
+  note?: string;
+  restock_movement_id?: number;
+  restocked_at?: string;
+  created_at: string;
+  resolved_at?: string;
+  name_en: string;
+  name_fa: string;
+  sku: string;
+  warehouse_name: string;
+}
+
+interface Warehouse {
+  id: number;
+  code: string;
+  name: string;
+  city?: string;
+  allow_negatives: number;
+  is_active: number;
 }
 
 interface Supplier {
@@ -116,6 +151,7 @@ interface StockAlert {
 
 export default function AdminInventory() {
   const { language, dir } = useLanguage();
+  const { toast } = useToast();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
@@ -125,6 +161,13 @@ export default function AdminInventory() {
   const [stockTakes, setStockTakes] = useState<StockTake[]>([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseFilter, setWarehouseFilter] = useState('all');
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+  const [submittingMovement, setSubmittingMovement] = useState(false);
+  const [inventoryReturns, setInventoryReturns] = useState<InventoryReturn[]>([]);
+  const [loadingReturns, setLoadingReturns] = useState(false);
 
   // Stock Entry/Exit/Adjust Dialogs
   const [entryOpen, setEntryOpen] = useState(false);
@@ -160,6 +203,18 @@ export default function AdminInventory() {
   const [poSupplier, setPoSupplier] = useState<string>('');
   const [poItems, setPoItems] = useState<{ product_id: number; quantity: number; unit_cost: number }[]>([]);
 
+  // Return Dialog
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [returnInventoryId, setReturnInventoryId] = useState('');
+  const [returnQty, setReturnQty] = useState(1);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnSource, setReturnSource] = useState<'customer' | 'supplier'>('customer');
+  const [returnReference, setReturnReference] = useState('');
+  const [returnDisposition, setReturnDisposition] = useState<'pending' | 'restock' | 'scrap'>('pending');
+  const [returnNote, setReturnNote] = useState('');
+  const [creatingReturn, setCreatingReturn] = useState(false);
+  const [restockingReturnId, setRestockingReturnId] = useState<number | null>(null);
+
   // Item Details
   const [detailsItem, setDetailsItem] = useState<InventoryItem | null>(null);
   const [itemMovements, setItemMovements] = useState<StockMovement[]>([]);
@@ -169,56 +224,99 @@ export default function AdminInventory() {
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [editData, setEditData] = useState<Partial<InventoryItem>>({});
 
-  useEffect(() => {
-    const seed: InventoryItem[] = [
-      { 
-        id: 1, sku: 'PUMP-XL-001', barcode: '8714235009211', name_en: 'Pool Pump XL', name_fa: 'پمپ استخر XL', 
-        stock: 32, reserved: 3, reorder_level: 10, incoming: 20, location: 'A-01', category: 'pumps', 
-        unit_cost: 500000, unit_price: 1200000, warehouse: 'Main', batch: 'B001',
-        abc_class: 'A', supplier_id: 1, lead_time_days: 14, defect_rate: 0.5, last_count_date: '2024-01-15'
-      },
-      { 
-        id: 2, sku: 'FLT-SAND-200', barcode: '8714235009228', name_en: 'Sand Filter 200', name_fa: 'فیلتر شنی ۲۰۰', 
-        stock: 8, reserved: 1, reorder_level: 12, incoming: 0, location: 'B-04', category: 'filters', 
-        unit_cost: 300000, unit_price: 750000, warehouse: 'Main', batch: 'B002',
-        abc_class: 'B', supplier_id: 2, lead_time_days: 21, defect_rate: 1.2, last_count_date: '2024-01-10'
-      },
-      { 
-        id: 3, sku: 'LED-LIGHT-RGB', barcode: '8714235009235', name_en: 'LED Pool Light RGB', name_fa: 'چراغ LED استخر RGB', 
-        stock: 54, reserved: 5, reorder_level: 15, incoming: 40, location: 'C-02', category: 'lights', 
-        unit_cost: 200000, unit_price: 500000, warehouse: 'Main', batch: 'B003', expiry_date: '2025-12-31',
-        abc_class: 'A', supplier_id: 1, lead_time_days: 7, defect_rate: 0.3, last_count_date: '2024-01-20'
-      },
-      { 
-        id: 4, sku: 'CHEM-CL-10', barcode: '8714235009242', name_en: 'Chlorine 10kg', name_fa: 'کلر ۱۰ کیلو', 
-        stock: 5, reserved: 0, reorder_level: 20, incoming: 50, location: 'D-07', category: 'chemicals', 
-        unit_cost: 150000, unit_price: 350000, warehouse: 'Main', batch: 'B004', expiry_date: '2025-06-30',
-        abc_class: 'B', supplier_id: 3, lead_time_days: 10, defect_rate: 0, last_count_date: '2024-01-05'
-      },
-      { 
-        id: 5, sku: 'PIPE-PVC-50', barcode: '8714235009259', name_en: 'PVC Pipe 50mm', name_fa: 'لوله PVC ۵۰ میلی', 
-        stock: 120, reserved: 10, reorder_level: 30, incoming: 0, location: 'A-03', category: 'pipes', 
-        unit_cost: 50000, unit_price: 120000, warehouse: 'Secondary', batch: 'B005',
-        abc_class: 'C', supplier_id: 2, lead_time_days: 28, defect_rate: 0.1, last_count_date: '2023-12-15'
-      },
-    ];
-    setItems(seed);
+  const fetchWarehouses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/warehouses');
+      if (!res.ok) throw new Error('Failed to load warehouses');
+      const data = await res.json();
+      setWarehouses(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: language === 'fa' ? 'خطا در بارگذاری انبارها' : 'Warehouse load failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  }, [language, toast]);
 
+  const fetchInventoryItems = useCallback(async () => {
+    setLoadingInventory(true);
+    try {
+      const res = await fetch('/api/admin/inventory/items');
+      if (!res.ok) throw new Error('Failed to load inventory items');
+      const data = await res.json();
+      setItems(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: language === 'fa' ? 'خطا در بارگذاری موجودی' : 'Inventory load failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingInventory(false);
+    }
+  }, [language, toast]);
+
+  const fetchMovements = useCallback(async () => {
+    setLoadingMovements(true);
+    try {
+      const res = await fetch('/api/admin/inventory/movements?limit=100');
+      if (!res.ok) throw new Error('Failed to load stock movements');
+      const data = await res.json();
+      setMovements(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: language === 'fa' ? 'خطا در بارگذاری گردش' : 'Movements load failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingMovements(false);
+    }
+  }, [language, toast]);
+
+  const fetchReturns = useCallback(async () => {
+    setLoadingReturns(true);
+    try {
+      const res = await fetch('/api/admin/inventory/returns');
+      if (!res.ok) throw new Error('Failed to load returns');
+      const data = await res.json();
+      setInventoryReturns(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: language === 'fa' ? 'خطا در بارگذاری مرجوعی' : 'Returns load failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingReturns(false);
+    }
+  }, [language, toast]);
+
+  const refreshInventoryData = useCallback(() => {
+    fetchInventoryItems();
+    fetchMovements();
+    fetchReturns();
+  }, [fetchInventoryItems, fetchMovements, fetchReturns]);
+
+  useEffect(() => {
+    fetchWarehouses();
+    fetchInventoryItems();
+    fetchMovements();
+    fetchReturns();
+  }, [fetchWarehouses, fetchInventoryItems, fetchMovements, fetchReturns]);
+
+  useEffect(() => {
     const seedSuppliers: Supplier[] = [
       { id: 1, name_en: 'Global Pool Systems', name_fa: 'سیستم های استخر جهانی', email: 'sales@globalpools.com', phone: '+1-234-567-8900', lead_time_days: 14, rating: 4.8, total_orders: 45, on_time_delivery: 98 },
       { id: 2, name_en: 'AquaTech Supplies', name_fa: 'تامین کنندگان آکوا تک', email: 'info@aquatech.com', phone: '+1-234-567-8901', lead_time_days: 21, rating: 4.5, total_orders: 32, on_time_delivery: 94 },
       { id: 3, name_en: 'Chemical Solutions Inc', name_fa: 'شرکت راهکارهای شیمیایی', email: 'orders@chemsol.com', phone: '+1-234-567-8902', lead_time_days: 10, rating: 4.6, total_orders: 67, on_time_delivery: 96 },
     ];
     setSuppliers(seedSuppliers);
-
-    const seedMovements: StockMovement[] = [
-      { id: 'm1', sku: 'PUMP-XL-001', productId: 1, type: 'out', quantity: -2, note: 'Sales Order', reference: '#1001', createdAt: new Date(Date.now() - 86400000).toISOString(), createdBy: 'Admin' },
-      { id: 'm2', sku: 'FLT-SAND-200', productId: 2, type: 'damage', quantity: -1, note: 'Damaged unit', reference: '', createdAt: new Date(Date.now() - 172800000).toISOString(), createdBy: 'Admin' },
-      { id: 'm3', sku: 'LED-LIGHT-RGB', productId: 3, type: 'in', quantity: 40, note: 'Incoming shipment', reference: 'PO-2024-001', unit_cost: 200000, createdAt: new Date(Date.now() - 259200000).toISOString(), createdBy: 'Supplier' },
-      { id: 'm4', sku: 'CHEM-CL-10', productId: 4, type: 'adjustment', quantity: 3, note: 'Stock reconciliation', reference: '', createdAt: new Date(Date.now() - 345600000).toISOString(), createdBy: 'Admin' },
-      { id: 'm5', sku: 'PIPE-PVC-50', productId: 5, type: 'transfer', quantity: 25, note: 'Transfer to Secondary warehouse', from_location: 'A-03', to_location: 'B-01', createdAt: new Date(Date.now() - 432000000).toISOString(), createdBy: 'Admin' },
-    ];
-    setMovements(seedMovements);
 
     const seedPO: PurchaseOrder[] = [
       { id: 'po1', supplier_id: 1, po_number: 'PO-2024-001', items: [{ product_id: 3, quantity: 40, unit_cost: 200000 }], total_amount: 8000000, status: 'received', order_date: '2024-01-01', expected_delivery: '2024-01-08', created_at: '2024-01-01' },
@@ -248,18 +346,22 @@ export default function AdminInventory() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(i =>
-      i.sku.toLowerCase().includes(q) ||
-      i.name_en.toLowerCase().includes(q) ||
-      i.name_fa.toLowerCase().includes(q) ||
-      i.barcode?.includes(q)
-    );
-  }, [items, search]);
+    return items.filter(i => {
+      const matchesSearch =
+        !q ||
+        i.sku.toLowerCase().includes(q) ||
+        i.name_en.toLowerCase().includes(q) ||
+        i.name_fa.toLowerCase().includes(q) ||
+        i.barcode?.includes(q);
+      const matchesWarehouse =
+        warehouseFilter === 'all' || String(i.warehouse_id) === warehouseFilter;
+      return matchesSearch && matchesWarehouse;
+    });
+  }, [items, search, warehouseFilter]);
 
-  const lowStock = (it: InventoryItem) => it.stock <= it.reorder_level;
-  const available = (it: InventoryItem) => Math.max(0, it.stock - it.reserved);
-  const totalValue = (it: InventoryItem) => (it.unit_cost || 0) * it.stock;
+  const lowStock = (it: InventoryItem) => (it.stock_on_hand || 0) <= (it.reorder_level || 0);
+  const available = (it: InventoryItem) => Math.max(0, (it.stock_on_hand || 0) - (it.reserved_quantity || 0));
+  const totalValue = (it: InventoryItem) => (it.average_unit_cost || 0) * (it.stock_on_hand || 0);
 
   const abcAnalysis = useMemo(() => {
     const itemsWithValue = items.map(it => ({ ...it, totalValue: totalValue(it) })).sort((a, b) => b.totalValue - a.totalValue);
@@ -276,11 +378,16 @@ export default function AdminInventory() {
   }, [items]);
 
   const calculateKPIs = () => {
+    if (items.length === 0) {
+      return { totalValue: 0, totalCost: 0, totalSold: 0, avgStock: 0, turnoverRatio: '0', defectRate: '0.00' };
+    }
     const inventoryValue = items.reduce((sum, it) => sum + totalValue(it), 0);
-    const totalCost = items.reduce((sum, it) => sum + ((it.unit_cost || 0) * it.stock), 0);
-    const totalSold = movements.filter(m => m.type === 'out').reduce((sum, m) => sum + Math.abs(m.quantity), 0);
-    const avgStock = items.reduce((sum, it) => sum + it.stock, 0) / items.length;
-    const turnoverRatio = totalSold > 0 ? (totalSold / avgStock).toFixed(2) : '0';
+    const totalCost = inventoryValue;
+    const totalSold = movements
+      .filter(m => m.direction === 'outbound')
+      .reduce((sum, m) => sum + Math.abs(m.quantity), 0);
+    const avgStock = items.reduce((sum, it) => sum + (it.stock_on_hand || 0), 0) / items.length;
+    const turnoverRatio = totalSold > 0 && avgStock > 0 ? (totalSold / avgStock).toFixed(2) : '0';
     const defectRate = items.reduce((sum, it) => sum + (it.defect_rate || 0), 0) / items.length;
 
     return { totalValue: inventoryValue, totalCost, totalSold, avgStock, turnoverRatio, defectRate: defectRate.toFixed(2) };
@@ -290,8 +397,8 @@ export default function AdminInventory() {
     if (!qcItem || qcInspectedQty <= 0) return;
     const qcRecord: QualityControl = {
       id: 'qc' + (qualityControls.length + 1),
-      product_id: qcItem.id,
-      batch: qcItem.batch || '',
+      product_id: qcItem.product_id,
+      batch: qcItem.barcode || 'N/A',
       received_qty: qcReceivedQty,
       inspected_qty: qcInspectedQty,
       defect_qty: qcDefectQty,
@@ -333,18 +440,224 @@ export default function AdminInventory() {
     setStockTakeDate('');
   };
 
+  const resetEntryDialog = () => {
+    setEntryOpen(false);
+    setEntryItem(null);
+    setEntryQty(0);
+    setEntryUnitCost(0);
+    setEntryReference('');
+    setEntryNote('');
+    setEntryBatch('');
+  };
+
+  const resetExitDialog = () => {
+    setExitOpen(false);
+    setExitItem(null);
+    setExitQty(0);
+    setExitReference('');
+    setExitNote('');
+    setExitType('out');
+  };
+
+  const handleEntrySubmit = async () => {
+    if (!entryItem || entryQty <= 0) {
+      toast({
+        title: language === 'fa' ? 'اطلاعات ناقص' : 'Missing data',
+        description: language === 'fa' ? 'تعداد ورودی باید بیشتر از صفر باشد.' : 'Quantity must be greater than zero.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSubmittingMovement(true);
+    try {
+      const res = await fetch('/api/admin/inventory/movements/inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: entryItem.product_id,
+          warehouse_id: entryItem.warehouse_id,
+          quantity: entryQty,
+          unit_cost: entryUnitCost || undefined,
+          reference_code: entryReference || undefined,
+          note: entryNote || undefined,
+          batch_number: entryBatch || undefined,
+          movement_type: 'adjustment',
+          created_by: 'Admin Portal',
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to record stock entry');
+      }
+      toast({
+        title: language === 'fa' ? 'ورود ثبت شد' : 'Entry recorded',
+        description: language === 'fa' ? 'موجودی کالا به روز شد.' : 'Inventory updated successfully.',
+      });
+      resetEntryDialog();
+      refreshInventoryData();
+    } catch (error) {
+      toast({
+        title: language === 'fa' ? 'عدم موفقیت' : 'Operation failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmittingMovement(false);
+    }
+  };
+
+  const handleExitSubmit = async () => {
+    if (!exitItem || exitQty <= 0) {
+      toast({
+        title: language === 'fa' ? 'اطلاعات ناقص' : 'Missing data',
+        description: language === 'fa' ? 'تعداد خروج باید بیشتر از صفر باشد.' : 'Quantity must be greater than zero.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSubmittingMovement(true);
+    try {
+      const res = await fetch('/api/admin/inventory/movements/outbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: exitItem.product_id,
+          warehouse_id: exitItem.warehouse_id,
+          quantity: exitQty,
+          movement_type: exitType,
+          reference_code: exitReference || undefined,
+          note: exitNote || undefined,
+          created_by: 'Admin Portal',
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to record stock issue');
+      }
+      toast({
+        title: language === 'fa' ? 'خروج ثبت شد' : 'Issue recorded',
+        description: language === 'fa' ? 'موجودی کالا کاهش یافت.' : 'Inventory decremented successfully.',
+      });
+      resetExitDialog();
+      refreshInventoryData();
+    } catch (error) {
+      toast({
+        title: language === 'fa' ? 'عدم موفقیت' : 'Operation failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmittingMovement(false);
+    }
+  };
+
+  const resetReturnDialog = () => {
+    setReturnDialogOpen(false);
+    setReturnInventoryId('');
+    setReturnQty(1);
+    setReturnReason('');
+    setReturnSource('customer');
+    setReturnReference('');
+    setReturnDisposition('pending');
+    setReturnNote('');
+  };
+
+  const handleCreateReturn = async () => {
+    const targetItem = items.find(it => String(it.id) === returnInventoryId);
+    if (!targetItem || returnQty <= 0) {
+      toast({
+        title: language === 'fa' ? 'اطلاعات ناقص' : 'Missing data',
+        description: language === 'fa' ? 'کالا، انبار و تعداد را مشخص کنید.' : 'Please choose an item and quantity.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setCreatingReturn(true);
+    try {
+      const res = await fetch('/api/admin/inventory/returns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: targetItem.product_id,
+          warehouse_id: targetItem.warehouse_id,
+          quantity: returnQty,
+          source: returnSource,
+          reason: returnReason || undefined,
+          reference_code: returnReference || undefined,
+          disposition: returnDisposition,
+          note: returnNote || undefined,
+          restock_now: returnDisposition === 'restock',
+          created_by: 'Admin Portal',
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to create return');
+      }
+      toast({
+        title: language === 'fa' ? 'مرجوعی ثبت شد' : 'Return recorded',
+        description: language === 'fa' ? 'درخواست مرجوعی ذخیره شد.' : 'Return request saved.',
+      });
+      resetReturnDialog();
+      refreshInventoryData();
+    } catch (error) {
+      toast({
+        title: language === 'fa' ? 'عدم موفقیت' : 'Operation failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingReturn(false);
+    }
+  };
+
+  const handleRestockReturn = async (returnId: number) => {
+    setRestockingReturnId(returnId);
+    try {
+      const res = await fetch(`/api/admin/inventory/returns/${returnId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restock: true, created_by: 'Admin Portal' }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to restock return');
+      }
+      toast({
+        title: language === 'fa' ? 'انبار شد' : 'Restocked',
+        description: language === 'fa' ? 'کالا به موجودی بازگشت.' : 'Item returned to stock.',
+      });
+      refreshInventoryData();
+    } catch (error) {
+      toast({
+        title: language === 'fa' ? 'عدم موفقیت' : 'Operation failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setRestockingReturnId(null);
+    }
+  };
+
   const generateBarcode = (sku: string) => {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(sku)}`;
   };
 
   const exportABCAnalysis = () => {
+    if (abcAnalysis.length === 0) {
+      toast({
+        title: language === 'fa' ? 'داده‌ای برای خروجی نیست' : 'No data to export',
+        description: language === 'fa' ? 'ابتدا موجودی را بارگذاری کنید.' : 'Load inventory before exporting.',
+      });
+      return;
+    }
     const data = abcAnalysis.map(item => ({
       SKU: item.sku,
       Product: language === 'fa' ? item.name_fa : item.name_en,
       'Total Value': formatCurrencyIRR(item.totalValue),
       'ABC Class': item.abc_class,
-      Stock: item.stock,
-      'Unit Cost': formatCurrencyIRR(item.unit_cost || 0),
+      Stock: item.stock_on_hand || 0,
+      'Unit Cost': formatCurrencyIRR(item.average_unit_cost || 0),
     }));
     const csv = [Object.keys(data[0]), ...data.map(row => Object.values(row))].map(row => row.join(',')).join('\n');
     const link = document.createElement('a');
@@ -406,21 +719,46 @@ export default function AdminInventory() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7 overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-8 overflow-x-auto">
             <TabsTrigger value="overview" className="text-xs">{language === 'fa' ? 'نمای کلی' : 'Overview'}</TabsTrigger>
             <TabsTrigger value="abc" className="text-xs">{language === 'fa' ? 'تجزیه ABC' : 'ABC Analysis'}</TabsTrigger>
             <TabsTrigger value="suppliers" className="text-xs">{language === 'fa' ? 'تامین' : 'Suppliers'}</TabsTrigger>
             <TabsTrigger value="qc" className="text-xs">{language === 'fa' ? 'کنترل کیفیت' : 'QC'}</TabsTrigger>
             <TabsTrigger value="stocktake" className="text-xs">{language === 'fa' ? 'شمارش' : 'Stock Take'}</TabsTrigger>
             <TabsTrigger value="movements" className="text-xs">{language === 'fa' ? 'حرکات' : 'Movements'}</TabsTrigger>
+            <TabsTrigger value="returns" className="text-xs">{language === 'fa' ? 'مرجوعی' : 'Returns'}</TabsTrigger>
             <TabsTrigger value="alerts" className="text-xs">{language === 'fa' ? 'هشدارها' : 'Alerts'}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <CardTitle>{language === 'fa' ? 'موجودی کالا' : 'Stock Inventory'}</CardTitle>
-                <Input placeholder={language === 'fa' ? 'کد یا نام' : 'SKU or name'} value={search} onChange={e => setSearch(e.target.value)} className="w-48" />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    placeholder={language === 'fa' ? 'کد یا نام' : 'SKU or name'}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="sm:w-48"
+                  />
+                  <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+                    <SelectTrigger className="sm:w-48 text-xs">
+                      <SelectValue placeholder={language === 'fa' ? 'همه انبارها' : 'All warehouses'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{language === 'fa' ? 'همه انبارها' : 'All warehouses'}</SelectItem>
+                      {warehouses.map(w => (
+                        <SelectItem key={w.id} value={String(w.id)}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={refreshInventoryData}>
+                    <RefreshCcw className="w-4 h-4 mr-1" />
+                    {language === 'fa' ? 'به‌روزرسانی' : 'Refresh'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -430,6 +768,7 @@ export default function AdminInventory() {
                         <TableHead className="text-xs">SKU</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'کد' : 'Barcode'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'محصول' : 'Product'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'انبار' : 'Warehouse'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'موجودی' : 'Stock'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'قابل فروش' : 'Available'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'ارزش' : 'Value'}</TableHead>
@@ -439,97 +778,257 @@ export default function AdminInventory() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map(it => {
-                        const abcItem = abcAnalysis.find(a => a.id === it.id);
-                        return (
-                          <TableRow key={it.id}>
-                            <TableCell className="text-xs font-mono">{it.sku}</TableCell>
-                            <TableCell>
-                              {it.barcode ? (
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-6 px-2">
-                                      <QrCode className="w-3 h-3" />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-xs">
-                                    <DialogHeader>
-                                      <DialogTitle className="text-sm">{it.sku}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="flex justify-center p-4">
-                                      <img src={generateBarcode(it.sku)} alt="barcode" className="w-40 h-40" />
-                                    </div>
-                                    <p className="text-xs text-center text-gray-600">{it.barcode}</p>
-                                  </DialogContent>
-                                </Dialog>
-                              ) : <span className="text-xs text-gray-400">-</span>}
-                            </TableCell>
-                            <TableCell className="text-xs font-medium">{language === 'fa' ? it.name_fa : it.name_en}</TableCell>
-                            <TableCell className="text-xs">{it.stock} {lowStock(it) && <Badge className="ml-1 text-xs" variant="destructive">Low</Badge>}</TableCell>
-                            <TableCell className="text-xs font-semibold">{available(it)}</TableCell>
-                            <TableCell className="text-xs">{formatCurrencyIRR(totalValue(it))}</TableCell>
-                            <TableCell><Badge className={abcItem?.abc_class === 'A' ? 'bg-red-500' : abcItem?.abc_class === 'B' ? 'bg-yellow-500' : 'bg-green-500'} className="text-xs">{abcItem?.abc_class}</Badge></TableCell>
-                            <TableCell className="text-xs">{(it.defect_rate || 0).toFixed(1)}%</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Dialog open={entryOpen && entryItem?.id === it.id} onOpenChange={(o) => { if (o) { setEntryItem(it); setEntryOpen(true); } else { setEntryOpen(false); setEntryItem(null); } }}>
-                                  <DialogTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="h-6 px-2"><Plus className="w-3 h-3" /></Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-sm">
-                                    <DialogHeader>
-                                      <DialogTitle className="text-sm">{language === 'fa' ? 'ورود موجودی' : 'Stock Entry'}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-3">
-                                      <div>
-                                        <Label className="text-xs">{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
-                                        <Input type="number" value={entryQty} onChange={(e) => setEntryQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                      {loadingInventory ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="text-xs py-6 text-center text-gray-500">
+                            {language === 'fa' ? 'در حال بارگذاری موجودی...' : 'Loading inventory...'}
+                          </TableCell>
+                        </TableRow>
+                      ) : filtered.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="text-xs py-6 text-center text-gray-500">
+                            {language === 'fa' ? 'آیتمی یافت نشد' : 'No items found'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filtered.map(it => {
+                          const abcItem = abcAnalysis.find(a => a.id === it.id);
+                          return (
+                            <TableRow key={it.id}>
+                              <TableCell className="text-xs font-mono">{it.sku}</TableCell>
+                              <TableCell>
+                                {it.barcode ? (
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-6 px-2">
+                                        <QrCode className="w-3 h-3" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-xs">
+                                      <DialogHeader>
+                                        <DialogTitle className="text-sm">{it.sku}</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="flex justify-center p-4">
+                                        <img src={generateBarcode(it.sku)} alt="barcode" className="w-40 h-40" />
                                       </div>
-                                      <div className="flex gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => { setEntryOpen(false); setEntryItem(null); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                                        <Button size="sm" onClick={() => { setItems(prev => prev.map(x => x.id === it.id ? { ...x, stock: x.stock + entryQty } : x)); setEntryOpen(false); setEntryItem(null); setEntryQty(0); }}>{language === 'fa' ? 'ثبت' : 'Save'}</Button>
+                                      <p className="text-xs text-center text-gray-600">{it.barcode}</p>
+                                    </DialogContent>
+                                  </Dialog>
+                                ) : <span className="text-xs text-gray-400">-</span>}
+                              </TableCell>
+                              <TableCell className="text-xs font-medium">{language === 'fa' ? it.name_fa : it.name_en}</TableCell>
+                              <TableCell className="text-xs">{it.warehouse_name}</TableCell>
+                              <TableCell className="text-xs">
+                                {it.stock_on_hand}{' '}
+                                {lowStock(it) && <Badge className="ml-1 text-xs" variant="destructive">{language === 'fa' ? 'کم' : 'Low'}</Badge>}
+                              </TableCell>
+                              <TableCell className="text-xs font-semibold">{available(it)}</TableCell>
+                              <TableCell className="text-xs">{formatCurrencyIRR(totalValue(it))}</TableCell>
+                              <TableCell>
+                                <Badge className={`text-xs ${abcItem?.abc_class === 'A' ? 'bg-red-500' : abcItem?.abc_class === 'B' ? 'bg-yellow-500' : 'bg-green-500'}`}>
+                                  {abcItem?.abc_class || '-'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{(it.defect_rate || 0).toFixed(1)}%</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Dialog
+                                    open={entryOpen && entryItem?.id === it.id}
+                                    onOpenChange={(o) => {
+                                      if (o) {
+                                        setEntryItem(it);
+                                        setEntryQty(0);
+                                        setEntryUnitCost(it.average_unit_cost || 0);
+                                        setEntryReference('');
+                                        setEntryNote('');
+                                        setEntryBatch('');
+                                        setEntryOpen(true);
+                                      } else {
+                                        resetEntryDialog();
+                                      }
+                                    }}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-6 px-2"><Plus className="w-3 h-3" /></Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-sm">
+                                      <DialogHeader>
+                                        <DialogTitle className="text-sm">{language === 'fa' ? 'ورود موجودی' : 'Stock Entry'}</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-3">
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
+                                          <Input type="number" value={entryQty} onChange={(e) => setEntryQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'قیمت واحد' : 'Unit cost'}</Label>
+                                          <Input type="number" value={entryUnitCost} onChange={(e) => setEntryUnitCost(parseFloat(e.target.value || '0'))} className="text-xs" />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'ارجاع' : 'Reference'}</Label>
+                                          <Input value={entryReference} onChange={(e) => setEntryReference(e.target.value)} className="text-xs" />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'سری ساخت' : 'Batch'}</Label>
+                                          <Input value={entryBatch} onChange={(e) => setEntryBatch(e.target.value)} className="text-xs" />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'یادداشت' : 'Note'}</Label>
+                                          <Textarea value={entryNote} onChange={(e) => setEntryNote(e.target.value)} className="text-xs" />
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button size="sm" variant="outline" onClick={resetEntryDialog}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
+                                          <Button size="sm" onClick={handleEntrySubmit} disabled={submittingMovement}>
+                                            {submittingMovement ? (language === 'fa' ? 'در حال ثبت...' : 'Saving...') : (language === 'fa' ? 'ثبت' : 'Save')}
+                                          </Button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                    </DialogContent>
+                                  </Dialog>
 
-                                <Dialog open={exitOpen && exitItem?.id === it.id} onOpenChange={(o) => { if (o) { setExitItem(it); setExitOpen(true); } else { setExitOpen(false); setExitItem(null); } }}>
-                                  <DialogTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="h-6 px-2"><Minus className="w-3 h-3" /></Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-sm">
-                                    <DialogHeader>
-                                      <DialogTitle className="text-sm">{language === 'fa' ? 'خروج موجودی' : 'Stock Exit'}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-3">
-                                      <div>
-                                        <Label className="text-xs">{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
-                                        <Input type="number" value={exitQty} onChange={(e) => setExitQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                                  <Dialog
+                                    open={exitOpen && exitItem?.id === it.id}
+                                    onOpenChange={(o) => {
+                                      if (o) {
+                                        setExitItem(it);
+                                        setExitQty(0);
+                                        setExitReference('');
+                                        setExitNote('');
+                                        setExitType('out');
+                                        setExitOpen(true);
+                                      } else {
+                                        resetExitDialog();
+                                      }
+                                    }}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-6 px-2"><Minus className="w-3 h-3" /></Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-sm">
+                                      <DialogHeader>
+                                        <DialogTitle className="text-sm">{language === 'fa' ? 'خروج موجودی' : 'Stock Exit'}</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-3">
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'نوع خروج' : 'Issue type'}</Label>
+                                          <Select value={exitType} onValueChange={(v: 'out' | 'damage' | 'return') => setExitType(v)}>
+                                            <SelectTrigger className="text-xs">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="out">{language === 'fa' ? 'فروش / خروج' : 'Sale / Issue'}</SelectItem>
+                                              <SelectItem value="damage">{language === 'fa' ? 'خرابی' : 'Damage'}</SelectItem>
+                                              <SelectItem value="return">{language === 'fa' ? 'مرجوعی' : 'Return'}</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'تعداد' : 'Quantity'}</Label>
+                                          <Input type="number" value={exitQty} onChange={(e) => setExitQty(parseInt(e.target.value || '0', 10))} className="text-xs" />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'ارجاع' : 'Reference'}</Label>
+                                          <Input value={exitReference} onChange={(e) => setExitReference(e.target.value)} className="text-xs" />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">{language === 'fa' ? 'یادداشت' : 'Note'}</Label>
+                                          <Textarea value={exitNote} onChange={(e) => setExitNote(e.target.value)} className="text-xs" />
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button size="sm" variant="outline" onClick={resetExitDialog}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
+                                          <Button size="sm" onClick={handleExitSubmit} disabled={submittingMovement}>
+                                            {submittingMovement ? (language === 'fa' ? 'در حال ثبت...' : 'Saving...') : (language === 'fa' ? 'ثبت' : 'Save')}
+                                          </Button>
+                                        </div>
                                       </div>
-                                      <div className="flex gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => { setExitOpen(false); setExitItem(null); }}>{language === 'fa' ? 'انصراف' : 'Cancel'}</Button>
-                                        <Button size="sm" onClick={() => { setItems(prev => prev.map(x => x.id === it.id ? { ...x, stock: Math.max(0, x.stock - exitQty) } : x)); setExitOpen(false); setExitItem(null); setExitQty(0); }}>{language === 'fa' ? 'ثبت' : 'Save'}</Button>
-                                      </div>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                    </DialogContent>
+                                  </Dialog>
 
-                                <Dialog open={detailsItem?.id === it.id} onOpenChange={(o) => { if (!o) setDetailsItem(null); else { setDetailsItem(it); setItemMovements(movements.filter(m => m.productId === it.id)); } }}>
-                                  <DialogTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="h-6 px-2"><Eye className="w-3 h-3" /></Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                      <DialogTitle className="text-sm">{language === 'fa' ? 'جزئیات' : 'Details'}</DialogTitle>
-                                    </DialogHeader>
-                                    {detailsItem && <div className="grid grid-cols-2 gap-3 text-xs"><div><p className="font-semibold">{language === 'fa' ? 'نام' : 'Name'}</p><p>{language === 'fa' ? detailsItem.name_fa : detailsItem.name_en}</p></div><div><p className="font-semibold">SKU</p><p>{detailsItem.sku}</p></div><div><p className="font-semibold">{language === 'fa' ? 'موجودی' : 'Stock'}</p><p>{detailsItem.stock}</p></div><div><p className="font-semibold">{language === 'fa' ? 'ارزش' : 'Value'}</p><p>{formatCurrencyIRR(totalValue(detailsItem))}</p></div></div>}
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                                  <Dialog
+                                    open={detailsItem?.id === it.id}
+                                    onOpenChange={(o) => {
+                                      if (!o) {
+                                        setDetailsItem(null);
+                                      } else {
+                                        setDetailsItem(it);
+                                        setItemMovements(movements.filter(m => m.product_id === it.product_id && m.warehouse_id === it.warehouse_id));
+                                      }
+                                    }}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-6 px-2"><Eye className="w-3 h-3" /></Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl">
+                                      <DialogHeader>
+                                        <DialogTitle className="text-sm">{language === 'fa' ? 'جزئیات' : 'Details'}</DialogTitle>
+                                      </DialogHeader>
+                                      {detailsItem && (
+                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                          <div>
+                                            <p className="font-semibold">{language === 'fa' ? 'نام' : 'Name'}</p>
+                                            <p>{language === 'fa' ? detailsItem.name_fa : detailsItem.name_en}</p>
+                                          </div>
+                                          <div>
+                                            <p className="font-semibold">SKU</p>
+                                            <p>{detailsItem.sku}</p>
+                                          </div>
+                                          <div>
+                                            <p className="font-semibold">{language === 'fa' ? 'انبار' : 'Warehouse'}</p>
+                                            <p>{detailsItem.warehouse_name}</p>
+                                          </div>
+                                          <div>
+                                            <p className="font-semibold">{language === 'fa' ? 'موجودی' : 'Stock'}</p>
+                                            <p>{detailsItem.stock_on_hand}</p>
+                                          </div>
+                                          <div>
+                                            <p className="font-semibold">{language === 'fa' ? 'ارزش' : 'Value'}</p>
+                                            <p>{formatCurrencyIRR(totalValue(detailsItem))}</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                      <div className="mt-4">
+                                        <p className="text-xs font-semibold mb-2">{language === 'fa' ? 'آخرین حرکات' : 'Recent movements'}</p>
+                                        <div className="max-h-48 overflow-y-auto">
+                                          <table className="w-full text-[11px]">
+                                            <thead>
+                                              <tr className="text-left text-gray-500">
+                                                <th>{language === 'fa' ? 'تاریخ' : 'Date'}</th>
+                                                <th>{language === 'fa' ? 'نوع' : 'Type'}</th>
+                                                <th>{language === 'fa' ? 'تعداد' : 'Qty'}</th>
+                                                <th>{language === 'fa' ? 'ارجاع' : 'Ref'}</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {itemMovements.length === 0 ? (
+                                                <tr>
+                                                  <td colSpan={4} className="text-center py-2 text-gray-500">
+                                                    {language === 'fa' ? 'حرکتی ثبت نشده است' : 'No movements yet'}
+                                                  </td>
+                                                </tr>
+                                              ) : (
+                                                itemMovements.map(m => (
+                                                  <tr key={m.id}>
+                                                    <td>{new Date(m.created_at).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</td>
+                                                    <td>{m.movement_type}</td>
+                                                    <td className={m.direction === 'outbound' ? 'text-red-600' : 'text-green-600'}>
+                                                      {m.direction === 'outbound' ? '-' : '+'}{m.quantity}
+                                                    </td>
+                                                    <td>{m.reference_code || '-'}</td>
+                                                  </tr>
+                                                ))
+                                              )}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -577,7 +1076,7 @@ export default function AdminInventory() {
                       <TableRow key={idx}>
                         <TableCell className="text-xs">{item.sku}</TableCell>
                         <TableCell className="text-xs">{language === 'fa' ? item.name_fa : item.name_en}</TableCell>
-                        <TableCell className="text-xs">{item.stock}</TableCell>
+                        <TableCell className="text-xs">{item.stock_on_hand || 0}</TableCell>
                         <TableCell className="text-xs">{formatCurrencyIRR(item.totalValue)}</TableCell>
                         <TableCell className="text-xs">{((item.totalValue / abcAnalysis.reduce((s, a) => s + a.totalValue, 0)) * 100).toFixed(1)}%</TableCell>
                         <TableCell><Badge className={item.abc_class === 'A' ? 'bg-red-500' : item.abc_class === 'B' ? 'bg-yellow-500' : 'bg-green-500'} className="text-xs">{item.abc_class}</Badge></TableCell>
@@ -764,21 +1263,212 @@ export default function AdminInventory() {
                       <TableRow>
                         <TableHead className="text-xs">{language === 'fa' ? 'تاریخ' : 'Date'}</TableHead>
                         <TableHead className="text-xs">SKU</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'انبار' : 'Warehouse'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'نوع' : 'Type'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'تعداد' : 'Qty'}</TableHead>
                         <TableHead className="text-xs">{language === 'fa' ? 'یادداشت' : 'Note'}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {movements.slice(0, 10).map(m => (
-                        <TableRow key={m.id}>
-                          <TableCell className="text-xs">{new Date(m.createdAt).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
-                          <TableCell className="text-xs">{m.sku}</TableCell>
-                          <TableCell className="text-xs"><Badge variant="outline" className="text-xs">{m.type}</Badge></TableCell>
-                          <TableCell className={`text-xs font-semibold ${m.quantity < 0 ? 'text-red-600' : 'text-green-700'}`}>{m.quantity}</TableCell>
-                          <TableCell className="text-xs max-w-xs truncate">{m.note || '-'}</TableCell>
+                      {loadingMovements ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-xs text-gray-500 py-4">
+                            {language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      ) : movements.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-xs text-gray-500 py-4">
+                            {language === 'fa' ? 'حرکتی یافت نشد' : 'No movements'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        movements.slice(0, 20).map(m => (
+                          <TableRow key={m.id}>
+                            <TableCell className="text-xs">{new Date(m.created_at).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
+                            <TableCell className="text-xs">{m.sku}</TableCell>
+                            <TableCell className="text-xs">{m.warehouse_name}</TableCell>
+                            <TableCell className="text-xs">
+                              <Badge variant="outline" className="text-xs">{m.movement_type}</Badge>
+                            </TableCell>
+                            <TableCell className={`text-xs font-semibold ${m.direction === 'outbound' ? 'text-red-600' : 'text-green-700'}`}>
+                              {m.direction === 'outbound' ? '-' : '+'}{m.quantity}
+                            </TableCell>
+                            <TableCell className="text-xs max-w-xs truncate">{m.note || '-'}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="returns">
+            <Card>
+              <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4" />
+                  {language === 'fa' ? 'مدیریت مرجوعی' : 'Returns Management'}
+                </CardTitle>
+                <Dialog
+                  open={returnDialogOpen}
+                  onOpenChange={(open) => {
+                    if (open) {
+                      setReturnDialogOpen(true);
+                      setReturnInventoryId('');
+                      setReturnQty(1);
+                      setReturnReason('');
+                      setReturnSource('customer');
+                      setReturnReference('');
+                      setReturnDisposition('pending');
+                      setReturnNote('');
+                    } else {
+                      resetReturnDialog();
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button size="sm" disabled={items.length === 0}>
+                      <Plus className="w-3 h-3 mr-1" />
+                      {language === 'fa' ? 'ثبت مرجوعی' : 'New Return'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">{language === 'fa' ? 'ثبت مرجوعی جدید' : 'Create Return'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <Label>{language === 'fa' ? 'کالا و انبار' : 'Item & warehouse'}</Label>
+                        <Select value={returnInventoryId} onValueChange={setReturnInventoryId}>
+                          <SelectTrigger className="text-xs">
+                            <SelectValue placeholder={language === 'fa' ? 'انتخاب کنید' : 'Select'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {items.map(item => (
+                              <SelectItem key={item.id} value={String(item.id)}>
+                                {item.sku} • {item.warehouse_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label>{language === 'fa' ? 'مقدار' : 'Quantity'}</Label>
+                          <Input type="number" value={returnQty} onChange={e => setReturnQty(parseInt(e.target.value || '0', 10))} />
+                        </div>
+                        <div>
+                          <Label>{language === 'fa' ? 'منبع' : 'Source'}</Label>
+                          <Select value={returnSource} onValueChange={(v: 'customer' | 'supplier') => setReturnSource(v)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="customer">{language === 'fa' ? 'مشتری' : 'Customer'}</SelectItem>
+                              <SelectItem value="supplier">{language === 'fa' ? 'تامین‌کننده' : 'Supplier'}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label>{language === 'fa' ? 'ارجاع/فاکتور' : 'Reference'}</Label>
+                        <Input value={returnReference} onChange={e => setReturnReference(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>{language === 'fa' ? 'دلیل' : 'Reason'}</Label>
+                        <Input value={returnReason} onChange={e => setReturnReason(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>{language === 'fa' ? 'وضعیت' : 'Disposition'}</Label>
+                        <Select value={returnDisposition} onValueChange={v => setReturnDisposition(v as 'pending' | 'restock' | 'scrap')}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">{language === 'fa' ? 'در انتظار' : 'Pending'}</SelectItem>
+                            <SelectItem value="restock">{language === 'fa' ? 'بازگشت به انبار' : 'Restock'}</SelectItem>
+                            <SelectItem value="scrap">{language === 'fa' ? 'اسقاط' : 'Scrap'}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>{language === 'fa' ? 'یادداشت' : 'Note'}</Label>
+                        <Textarea value={returnNote} onChange={e => setReturnNote(e.target.value)} />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={resetReturnDialog}>
+                          {language === 'fa' ? 'انصراف' : 'Cancel'}
+                        </Button>
+                        <Button size="sm" onClick={handleCreateReturn} disabled={creatingReturn}>
+                          {creatingReturn ? (language === 'fa' ? 'در حال ثبت...' : 'Saving...') : (language === 'fa' ? 'ثبت' : 'Save')}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">{language === 'fa' ? 'تاریخ' : 'Date'}</TableHead>
+                        <TableHead className="text-xs">SKU</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'انبار' : 'Warehouse'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'تعداد' : 'Qty'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'منبع' : 'Source'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'وضعیت' : 'Status'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'تصمیم' : 'Disposition'}</TableHead>
+                        <TableHead className="text-xs">{language === 'fa' ? 'عملیات' : 'Actions'}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loadingReturns ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-xs text-gray-500 py-4">
+                            {language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}
+                          </TableCell>
+                        </TableRow>
+                      ) : inventoryReturns.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-xs text-gray-500 py-4">
+                            {language === 'fa' ? 'مرجوعی ثبت نشده' : 'No returns recorded'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        inventoryReturns.map(ret => {
+                          const canRestock = ret.disposition === 'restock' && ret.status !== 'restocked';
+                          return (
+                            <TableRow key={ret.id}>
+                              <TableCell className="text-xs">{new Date(ret.created_at).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</TableCell>
+                              <TableCell className="text-xs">{ret.sku}</TableCell>
+                              <TableCell className="text-xs">{ret.warehouse_name}</TableCell>
+                              <TableCell className="text-xs">{ret.quantity}</TableCell>
+                              <TableCell className="text-xs capitalize">{language === 'fa' ? (ret.source === 'customer' ? 'مشتری' : 'تامین‌کننده') : ret.source}</TableCell>
+                              <TableCell className="text-xs">
+                                <Badge variant="outline" className="text-xs">{ret.status}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs capitalize">{ret.disposition}</TableCell>
+                              <TableCell className="text-xs">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs"
+                                  disabled={!canRestock || restockingReturnId === ret.id}
+                                  onClick={() => handleRestockReturn(ret.id)}
+                                >
+                                  {restockingReturnId === ret.id
+                                    ? (language === 'fa' ? 'در حال پردازش' : 'Working...')
+                                    : (language === 'fa' ? 'بازگشت به انبار' : 'Restock')}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </div>

@@ -53,6 +53,8 @@ import AdminProcurement from "./pages/admin/Procurement";
 import ProductForm from "./pages/admin/ProductForm";
 import MenuManagement from "./pages/admin/MenuManagement";
 import AdminStorePages from "./pages/admin/StorePages";
+import AdminDistribution from "./pages/admin/Distribution";
+import AdminBlog from "./pages/admin/Blog";
 
 const queryClient = new QueryClient();
 
@@ -369,6 +371,14 @@ const App = () => (
                         }
                       />
                       <Route
+                        path="/admin/blog"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminBlog />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
                         path="/admin/seo"
                         element={
                           <ProtectedRoute requireAdmin>
@@ -437,6 +447,14 @@ const App = () => (
                         element={
                           <ProtectedRoute requireAdmin>
                             <AdminSalesAndCRM />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/distribution"
+                        element={
+                          <ProtectedRoute requireAdmin>
+                            <AdminDistribution />
                           </ProtectedRoute>
                         }
                       />

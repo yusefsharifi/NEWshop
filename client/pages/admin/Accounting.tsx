@@ -56,6 +56,8 @@ export default function AdminAccounting() {
   const { language, dir } = useLanguage();
   const [accounts, setAccounts] = useState<ChartAccount[]>([]);
   const [glEntries, setGlEntries] = useState<GLEntry[]>([]);
+  const [trialBalance, setTrialBalance] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('chart-of-accounts');
   const [filterType, setFilterType] = useState<string>('all');
@@ -66,162 +68,61 @@ export default function AdminAccounting() {
   const [formData, setFormData] = useState<Partial<ChartAccount>>({});
 
   useEffect(() => {
-    // Initialize with standard chart of accounts
-    const standardAccounts: ChartAccount[] = [
-      // ASSETS (1000-1999)
-      { 
-        id: 1, code: '1000', name_en: 'Cash & Cash Equivalents', name_fa: 'نقد و اسکناس',
-        type: 'asset', category: 'current_assets', balance: 5000000, debit_balance: 5000000, credit_balance: 0,
-        status: 'active', is_control_account: true, created_date: new Date().toISOString()
-      },
-      { 
-        id: 2, code: '1010', name_en: 'Petty Cash', name_fa: 'صندوق کوچک',
-        type: 'asset', category: 'current_assets', balance: 500000, debit_balance: 500000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 3, code: '1100', name_en: 'Accounts Receivable', name_fa: 'حسابهای دریافتنی',
-        type: 'asset', category: 'current_assets', balance: 3500000, debit_balance: 3500000, credit_balance: 0,
-        status: 'active', is_control_account: true, created_date: new Date().toISOString()
-      },
-      { 
-        id: 4, code: '1200', name_en: 'Inventory', name_fa: 'موجودی کالا',
-        type: 'asset', category: 'current_assets', balance: 8500000, debit_balance: 8500000, credit_balance: 0,
-        status: 'active', is_control_account: true, created_date: new Date().toISOString()
-      },
-      { 
-        id: 5, code: '1500', name_en: 'Fixed Assets', name_fa: 'دارایی های ثابت',
-        type: 'asset', category: 'fixed_assets', balance: 15000000, debit_balance: 15000000, credit_balance: 0,
-        status: 'active', is_control_account: true, created_date: new Date().toISOString()
-      },
-      { 
-        id: 6, code: '1600', name_en: 'Accumulated Depreciation', name_fa: 'استهلاک انباشته',
-        type: 'asset', category: 'fixed_assets', balance: -2000000, debit_balance: 0, credit_balance: 2000000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
+    fetchAccounts();
+    if (activeTab === 'general-ledger') {
+      fetchGeneralLedger();
+    } else if (activeTab === 'trial-balance') {
+      fetchTrialBalance();
+    }
+  }, [filterType, activeTab]);
 
-      // LIABILITIES (2000-2999)
-      { 
-        id: 7, code: '2000', name_en: 'Accounts Payable', name_fa: 'حسابهای پرداختنی',
-        type: 'liability', category: 'current_liabilities', balance: -2000000, debit_balance: 0, credit_balance: 2000000,
-        status: 'active', is_control_account: true, created_date: new Date().toISOString()
-      },
-      { 
-        id: 8, code: '2100', name_en: 'Short-term Loans', name_fa: 'وام های کوتاه مدت',
-        type: 'liability', category: 'current_liabilities', balance: -1500000, debit_balance: 0, credit_balance: 1500000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 9, code: '2200', name_en: 'Long-term Loans', name_fa: 'وام های بلند مدت',
-        type: 'liability', category: 'long_term_liabilities', balance: -5000000, debit_balance: 0, credit_balance: 5000000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 10, code: '2300', name_en: 'Accrued Expenses', name_fa: 'هزینه های تعلق گرفته',
-        type: 'liability', category: 'current_liabilities', balance: -500000, debit_balance: 0, credit_balance: 500000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
+  const fetchAccounts = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filterType !== 'all') {
+        params.append('type', filterType);
+      }
+      params.append('status', 'all');
 
-      // EQUITY (3000-3999)
-      { 
-        id: 11, code: '3000', name_en: 'Share Capital', name_fa: 'سرمایه سهام',
-        type: 'equity', category: 'equity', balance: -10000000, debit_balance: 0, credit_balance: 10000000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 12, code: '3100', name_en: 'Retained Earnings', name_fa: 'سود انباشته',
-        type: 'equity', category: 'equity', balance: -5000000, debit_balance: 0, credit_balance: 5000000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
+      const response = await fetch(`/api/admin/accounts?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch accounts');
+      const data = await response.json();
+      setAccounts(data);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // REVENUE (4000-4999)
-      { 
-        id: 13, code: '4000', name_en: 'Sales Revenue', name_fa: 'درآمد فروش',
-        type: 'revenue', category: 'revenue', balance: -18000000, debit_balance: 0, credit_balance: 18000000,
-        status: 'active', is_control_account: true, created_date: new Date().toISOString()
-      },
-      { 
-        id: 14, code: '4100', name_en: 'Service Revenue', name_fa: 'درآمد خدمات',
-        type: 'revenue', category: 'revenue', balance: -2500000, debit_balance: 0, credit_balance: 2500000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 15, code: '4200', name_en: 'Interest Income', name_fa: 'درآمد بهره',
-        type: 'revenue', category: 'revenue', balance: -200000, debit_balance: 0, credit_balance: 200000,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
+  const fetchGeneralLedger = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/general-ledger');
+      if (!response.ok) throw new Error('Failed to fetch general ledger');
+      const data = await response.json();
+      setGlEntries(data);
+    } catch (error) {
+      console.error('Error fetching general ledger:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // EXPENSES (5000-9999)
-      { 
-        id: 16, code: '5000', name_en: 'Cost of Goods Sold', name_fa: 'بهای تمام شده کالا فروخته شده',
-        type: 'expense', category: 'operating_expenses', balance: 9000000, debit_balance: 9000000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 17, code: '5100', name_en: 'Raw Materials', name_fa: 'مواد اولیه',
-        type: 'expense', category: 'cost_of_sales', balance: 2000000, debit_balance: 2000000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 18, code: '6000', name_en: 'Salaries & Wages', name_fa: 'حقوق و دستمزد',
-        type: 'expense', category: 'operating_expenses', balance: 3000000, debit_balance: 3000000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 19, code: '6100', name_en: 'Utilities', name_fa: 'مصارف',
-        type: 'expense', category: 'operating_expenses', balance: 500000, debit_balance: 500000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 20, code: '6200', name_en: 'Rent Expense', name_fa: 'هزینه اجاره',
-        type: 'expense', category: 'operating_expenses', balance: 800000, debit_balance: 800000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 21, code: '6300', name_en: 'Office Supplies', name_fa: 'لوازم اداری',
-        type: 'expense', category: 'operating_expenses', balance: 300000, debit_balance: 300000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 22, code: '6400', name_en: 'Marketing Expense', name_fa: 'هزینه بازاریابی',
-        type: 'expense', category: 'operating_expenses', balance: 700000, debit_balance: 700000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 23, code: '6500', name_en: 'Depreciation Expense', name_fa: 'هزینه استهلاک',
-        type: 'expense', category: 'operating_expenses', balance: 400000, debit_balance: 400000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 24, code: '6600', name_en: 'Interest Expense', name_fa: 'هزینه بهره',
-        type: 'expense', category: 'financing_expenses', balance: 250000, debit_balance: 250000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-      { 
-        id: 25, code: '6700', name_en: 'Tax Expense', name_fa: 'هزینه مالیات',
-        type: 'expense', category: 'tax_expense', balance: 1000000, debit_balance: 1000000, credit_balance: 0,
-        status: 'active', is_control_account: false, created_date: new Date().toISOString()
-      },
-    ];
-    setAccounts(standardAccounts);
-
-    // Sample GL entries
-    const sampleEntries: GLEntry[] = [
-      {
-        id: 'gl1', date: new Date(Date.now() - 86400000).toISOString().split('T')[0], reference_number: 'INV-001',
-        journal_type: 'sales', account_code: '1000', account_name: 'Cash & Cash Equivalents',
-        debit_amount: 5000000, credit_amount: 0, description: 'Sales invoice #001', posted_by: 'Admin',
-        posted_date: new Date().toISOString(), status: 'posted', line_number: 1
-      },
-      {
-        id: 'gl2', date: new Date(Date.now() - 86400000).toISOString().split('T')[0], reference_number: 'INV-001',
-        journal_type: 'sales', account_code: '4000', account_name: 'Sales Revenue',
-        debit_amount: 0, credit_amount: 5000000, description: 'Sales invoice #001', posted_by: 'Admin',
-        posted_date: new Date().toISOString(), status: 'posted', line_number: 2
-      },
-    ];
-    setGlEntries(sampleEntries);
-  }, [language]);
+  const fetchTrialBalance = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/trial-balance');
+      if (!response.ok) throw new Error('Failed to fetch trial balance');
+      const data = await response.json();
+      setTrialBalance(data);
+    } catch (error) {
+      console.error('Error fetching trial balance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     let result = accounts;
@@ -239,34 +140,56 @@ export default function AdminAccounting() {
     return result;
   }, [accounts, search, filterType]);
 
-  const handleSaveAccount = () => {
+  const handleSaveAccount = async () => {
     if (!formData.code || !formData.name_en) return;
-    if (editingAccount) {
-      setAccounts(prev => prev.map(a => a.id === editingAccount.id ? { ...a, ...formData } as ChartAccount : a));
-    } else {
-      const newId = Math.max(...accounts.map(a => a.id), 0) + 1;
-      setAccounts([...accounts, {
-        id: newId,
-        code: formData.code || '',
-        name_en: formData.name_en || '',
-        name_fa: formData.name_fa || '',
-        type: formData.type || 'asset',
-        category: formData.category || '',
-        balance: 0,
-        debit_balance: 0,
-        credit_balance: 0,
-        status: 'active',
-        is_control_account: false,
-        created_date: new Date().toISOString(),
-      }]);
+
+    try {
+      const url = editingAccount
+        ? `/api/admin/accounts/${editingAccount.id}`
+        : '/api/admin/accounts';
+      const method = editingAccount ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save account');
+      }
+
+      await fetchAccounts();
+      setAccountDialogOpen(false);
+      setEditingAccount(null);
+      setFormData({});
+    } catch (error: any) {
+      console.error('Error saving account:', error);
+      alert(language === 'fa' ? `خطا: ${error.message}` : `Error: ${error.message}`);
     }
-    setAccountDialogOpen(false);
-    setEditingAccount(null);
-    setFormData({});
   };
 
-  const deleteAccount = (id: number) => {
-    setAccounts(prev => prev.filter(a => a.id !== id));
+  const deleteAccount = async (id: number) => {
+    if (!confirm(language === 'fa' ? 'آیا از حذف این حساب اطمینان دارید؟' : 'Are you sure you want to delete this account?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/accounts/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete account');
+      }
+
+      await fetchAccounts();
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      alert(language === 'fa' ? `خطا: ${error.message}` : `Error: ${error.message}`);
+    }
   };
 
   const totalDebit = filtered.reduce((sum, a) => sum + a.debit_balance, 0);
@@ -540,25 +463,66 @@ export default function AdminAccounting() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {accounts.filter(a => a.status === 'active').map(account => (
-                        <TableRow key={account.id}>
-                          <TableCell className="text-xs font-mono">{account.code}</TableCell>
-                          <TableCell className="text-xs">{language === 'fa' ? account.name_fa : account.name_en}</TableCell>
-                          <TableCell className="text-xs text-right">{account.debit_balance > 0 ? formatCurrencyIRR(account.debit_balance) : '-'}</TableCell>
-                          <TableCell className="text-xs text-right">{account.credit_balance > 0 ? formatCurrencyIRR(account.credit_balance) : '-'}</TableCell>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p className="mt-2 text-gray-600">{language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}</p>
+                          </TableCell>
                         </TableRow>
-                      ))}
-                      <TableRow className="font-bold bg-gray-50">
-                        <TableCell colSpan={2}>{language === 'fa' ? 'مجموع' : 'Total'}</TableCell>
-                        <TableCell className="text-right">{formatCurrencyIRR(accounts.reduce((sum, a) => sum + a.debit_balance, 0))}</TableCell>
-                        <TableCell className="text-right">{formatCurrencyIRR(accounts.reduce((sum, a) => sum + a.credit_balance, 0))}</TableCell>
-                      </TableRow>
+                      ) : trialBalance.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                            {language === 'fa' ? 'داده‌ای یافت نشد' : 'No data found'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        <>
+                          {trialBalance.map((item: any) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="text-xs font-mono">{item.code}</TableCell>
+                              <TableCell className="text-xs">{language === 'fa' ? item.name_fa : item.name_en}</TableCell>
+                              <TableCell className="text-xs text-right">{item.total_debit > 0 ? formatCurrencyIRR(item.total_debit) : '-'}</TableCell>
+                              <TableCell className="text-xs text-right">{item.total_credit > 0 ? formatCurrencyIRR(item.total_credit) : '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold bg-gray-50">
+                            <TableCell colSpan={2}>{language === 'fa' ? 'مجموع' : 'Total'}</TableCell>
+                            <TableCell className="text-right">{formatCurrencyIRR(trialBalance.reduce((sum: number, a: any) => sum + (a.total_debit || 0), 0))}</TableCell>
+                            <TableCell className="text-right">{formatCurrencyIRR(trialBalance.reduce((sum: number, a: any) => sum + (a.total_credit || 0), 0))}</TableCell>
+                          </TableRow>
+                        </>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-900">{language === 'fa' ? '✓ میزان آزمایشی برابر است' : '✓ Trial Balance is balanced'}</p>
-                </div>
+                {!loading && trialBalance.length > 0 && (
+                  <div className={`mt-6 p-4 rounded-lg ${
+                    Math.abs(
+                      trialBalance.reduce((sum: number, a: any) => sum + (a.total_debit || 0), 0) -
+                      trialBalance.reduce((sum: number, a: any) => sum + (a.total_credit || 0), 0)
+                    ) < 0.01
+                      ? 'bg-green-50'
+                      : 'bg-red-50'
+                  }`}>
+                    <p className={`text-sm ${
+                      Math.abs(
+                        trialBalance.reduce((sum: number, a: any) => sum + (a.total_debit || 0), 0) -
+                        trialBalance.reduce((sum: number, a: any) => sum + (a.total_credit || 0), 0)
+                      ) < 0.01
+                        ? 'text-green-900'
+                        : 'text-red-900'
+                    }`}>
+                      {Math.abs(
+                        trialBalance.reduce((sum: number, a: any) => sum + (a.total_debit || 0), 0) -
+                        trialBalance.reduce((sum: number, a: any) => sum + (a.total_credit || 0), 0)
+                      ) < 0.01
+                        ? (language === 'fa' ? '✓ میزان آزمایشی برابر است' : '✓ Trial Balance is balanced')
+                        : (language === 'fa' ? '✗ میزان آزمایشی برابر نیست' : '✗ Trial Balance is not balanced')
+                      }
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
