@@ -1,4 +1,5 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
@@ -185,7 +186,7 @@ export function createServer() {
   // AI API routes
   app.post("/api/ai/blog/posts", verifyAIKey, aiCreateBlogPost);
   app.put("/api/ai/blog/posts/:id", verifyAIKey, aiUpdateBlogPost);
-  
+
   // AI Management routes - Admin
   app.get("/api/admin/ai/keys", getAIKeys);
   app.post("/api/admin/ai/keys", createAIKey);
