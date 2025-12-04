@@ -1,5 +1,5 @@
-import sqlite3 from 'sqlite3';
-import path from 'path';
+import * as sqlite3 from 'sqlite3';
+import * as path from 'path';
 
 const dbPath = path.join(process.cwd(), 'database.sqlite');
 
@@ -790,22 +790,22 @@ export function seedDatabase() {
         { code: '1200', name_en: 'Inventory', name_fa: 'موجودی کالا', type: 'asset', category: 'current_assets', balance: 8500000, debit_balance: 8500000, credit_balance: 0, is_control_account: 1 },
         { code: '1500', name_en: 'Fixed Assets', name_fa: 'دارایی های ثابت', type: 'asset', category: 'fixed_assets', balance: 15000000, debit_balance: 15000000, credit_balance: 0, is_control_account: 1 },
         { code: '1600', name_en: 'Accumulated Depreciation', name_fa: 'استهلاک انباشته', type: 'asset', category: 'fixed_assets', balance: -2000000, debit_balance: 0, credit_balance: 2000000, is_control_account: 0 },
-        
+
         // LIABILITIES (2000-2999)
         { code: '2000', name_en: 'Accounts Payable', name_fa: 'حسابهای پرداختنی', type: 'liability', category: 'current_liabilities', balance: -2000000, debit_balance: 0, credit_balance: 2000000, is_control_account: 1 },
         { code: '2100', name_en: 'Short-term Loans', name_fa: 'وام های کوتاه مدت', type: 'liability', category: 'current_liabilities', balance: -1500000, debit_balance: 0, credit_balance: 1500000, is_control_account: 0 },
         { code: '2200', name_en: 'Long-term Loans', name_fa: 'وام های بلند مدت', type: 'liability', category: 'long_term_liabilities', balance: -5000000, debit_balance: 0, credit_balance: 5000000, is_control_account: 0 },
         { code: '2300', name_en: 'Accrued Expenses', name_fa: 'هزینه های تعلق گرفته', type: 'liability', category: 'current_liabilities', balance: -500000, debit_balance: 0, credit_balance: 500000, is_control_account: 0 },
-        
+
         // EQUITY (3000-3999)
         { code: '3000', name_en: 'Share Capital', name_fa: 'سرمایه سهام', type: 'equity', category: 'equity', balance: -10000000, debit_balance: 0, credit_balance: 10000000, is_control_account: 0 },
         { code: '3100', name_en: 'Retained Earnings', name_fa: 'سود انباشته', type: 'equity', category: 'equity', balance: -5000000, debit_balance: 0, credit_balance: 5000000, is_control_account: 0 },
-        
+
         // REVENUE (4000-4999)
         { code: '4000', name_en: 'Sales Revenue', name_fa: 'درآمد فروش', type: 'revenue', category: 'revenue', balance: -18000000, debit_balance: 0, credit_balance: 18000000, is_control_account: 1 },
         { code: '4100', name_en: 'Service Revenue', name_fa: 'درآمد خدمات', type: 'revenue', category: 'revenue', balance: -2500000, debit_balance: 0, credit_balance: 2500000, is_control_account: 0 },
         { code: '4200', name_en: 'Interest Income', name_fa: 'درآمد بهره', type: 'revenue', category: 'revenue', balance: -200000, debit_balance: 0, credit_balance: 200000, is_control_account: 0 },
-        
+
         // EXPENSES (5000-9999)
         { code: '5000', name_en: 'Cost of Goods Sold', name_fa: 'بهای تمام شده کالا فروخته شده', type: 'expense', category: 'operating_expenses', balance: 9000000, debit_balance: 9000000, credit_balance: 0, is_control_account: 0 },
         { code: '5100', name_en: 'Raw Materials', name_fa: 'مواد اولیه', type: 'expense', category: 'cost_of_sales', balance: 2000000, debit_balance: 2000000, credit_balance: 0, is_control_account: 0 },

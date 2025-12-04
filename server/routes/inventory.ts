@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import sqlite3 from "sqlite3";
+import * as sqlite3 from "sqlite3";
 import { db } from "../database/init";
 
 type RunResult = sqlite3.RunResult;
