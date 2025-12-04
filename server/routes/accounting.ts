@@ -298,7 +298,7 @@ export const getJournalEntries: RequestHandler = (req, res) => {
             if (err) {
               resolve({ ...entry, lines: [] });
             } else {
-              resolve({ ...entry, lines });
+              resolve({ ...(entry as any), lines });
             }
           }
         );

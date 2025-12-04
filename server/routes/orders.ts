@@ -360,7 +360,7 @@ export const getOrder: RequestHandler = (req, res) => {
           return res.status(500).json({ error: 'Failed to fetch order items' });
         }
 
-        res.json({ ...order, items });
+        res.json({ ...(order as any), items });
       }
     );
   });

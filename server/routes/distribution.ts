@@ -74,7 +74,7 @@ export const getShipment: RequestHandler = (req, res) => {
             return res.status(500).json({ error: 'Failed to fetch shipment items' });
           }
 
-          res.json({ ...shipment, items });
+          res.json({ ...(shipment as any), items });
         }
       );
     }
@@ -171,7 +171,7 @@ export const prepareShipmentItem: RequestHandler = (req, res) => {
         db.run(
           `UPDATE shipments SET prepared_by = ? WHERE id = ?`,
           [prepared_by, shipmentId],
-          () => {}
+          () => { }
         );
       }
 
