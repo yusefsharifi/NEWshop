@@ -1,8 +1,8 @@
 import { RequestHandler } from "express";
-import * as sqlite3 from "sqlite3";
+import sqlite3Package from "sqlite3";
 import { db } from "../database/init";
 
-type RunResult = sqlite3.RunResult;
+type RunResult = sqlite3Package.RunResult;
 type AppError = Error & { status?: number };
 
 interface WarehouseRecord {

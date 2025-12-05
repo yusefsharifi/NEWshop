@@ -1,12 +1,13 @@
-import * as sqlite3 from 'sqlite3';
+import sqlite3Package from 'sqlite3';
 import * as path from 'path';
 
+const sqlite3 = sqlite3Package.verbose();
 const dbPath = path.join(process.cwd(), 'database.sqlite');
 
 // Lazy initialization - database is created on first access
-let _db: sqlite3.Database | null = null;
+let _db: sqlite3Package.Database | null = null;
 
-function getDb(): sqlite3.Database {
+function getDb(): sqlite3Package.Database {
   if (!_db) {
     _db = new sqlite3.Database(dbPath);
   }
@@ -14,7 +15,7 @@ function getDb(): sqlite3.Database {
 }
 
 // Export a Proxy that lazily initializes the database
-export const db = new Proxy({} as sqlite3.Database, {
+export const db = new Proxy({} as sqlite3Package.Database, {
   get(target, prop) {
     const database = getDb();
     const value = (database as any)[prop];
