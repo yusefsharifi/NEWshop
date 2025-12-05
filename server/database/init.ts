@@ -13,7 +13,14 @@ function getDb(): sqlite3.Database {
   return _db;
 }
 
-export const db = getDb();
+// Export a Proxy that lazily initializes the database
+export const db = new Proxy({} as sqlite3.Database, {
+  get(target, prop) {
+    const database = getDb();
+    const value = (database as any)[prop];
+    return typeof value === 'function' ? value.bind(database) : value;
+  }
+});
 
 // Initialize database tables
 export function initializeDatabase() {
