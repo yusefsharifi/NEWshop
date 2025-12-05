@@ -3,16 +3,17 @@ import * as path from 'path';
 
 const dbPath = path.join(process.cwd(), 'database.sqlite');
 
-// Lazy initialization to avoid errors during Vite config bundling
+// Lazy initialization - database is created on first access
 let _db: sqlite3.Database | null = null;
-export const db = new Proxy({} as sqlite3.Database, {
-  get(target, prop) {
-    if (!_db) {
-      _db = new sqlite3.Database(dbPath);
-    }
-    return (_db as any)[prop];
+
+function getDb(): sqlite3.Database {
+  if (!_db) {
+    _db = new sqlite3.Database(dbPath);
   }
-});
+  return _db;
+}
+
+export const db = getDb();
 
 // Initialize database tables
 export function initializeDatabase() {
