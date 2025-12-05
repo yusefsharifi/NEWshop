@@ -4,13 +4,13 @@
 /* Persian Font Faces */
 @font-face {
   font-family: 'IranSans';
-  src: url('https://cdn.jsdelivr.net/npm/iranfonts@5.0.0/dist/iransans/iransans.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/iran-sans@v5.0.0/webfonts/woff2/IRANSansWeb.woff2') format('woff2');
   font-weight: normal;
 }
 
 @font-face {
   font-family: 'IranSans';
-  src: url('https://cdn.jsdelivr.net/npm/iranfonts@5.0.0/dist/iransans/iransans-bold.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/iran-sans@v5.0.0/webfonts/woff2/IRANSansWeb_Bold.woff2') format('woff2');
   font-weight: bold;
 }
 
